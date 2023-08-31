@@ -4,11 +4,8 @@ import numpy as np
 import sys
 import os
 import cv2
-
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Add the parent directory to sys.path
 sys.path.append(parent_dir)
-
 import utils
 from visualizations import viz
 
@@ -71,15 +68,20 @@ def rotate(im, label, factor=0):
     return np.ascontiguousarray(np.rot90(im, factor)), label
 
 
-# def transpose
-# def histogram_matching(im)
-# def normalize(img, mean, std, max_pixel_value=255.0):
-# def _shift_hsv_uint8(img, hue_shift, sat_shift, val_shift):
-# def equalize_hist(img):
-
-
-def random_crop(im, label):
+def transpose(im, label):
     pass
+
+
+def crop_around_bbox(im, label, crop_width, crop_height):
+    im_h, im_w = im.shape
+    if im_h < crop_height or im_w < crop_width:
+        raise ValueError(f"Requested crop size ({crop_width}, {crop_height}) is larger than the image size ({im_w}, {im_h})")
+    center_x, center_y, w, h = label
+    x = int(center_x * im_w - crop_width / 2)
+    y = int(center_y * im_h - crop_height / 2)
+    cropped_image = cv2.getRectSubPix(im, (crop_width, crop_height), (x + crop_width / 2, y + crop_height / 2))
+    cropped_label = [0.5, 0.5, w*(im_w/crop_width), h*(im_h/crop_height)]
+    return cropped_image, cropped_label
 
 
 def shift(im, label, shift_type='horizontal', shiftamount=15):
@@ -91,13 +93,17 @@ def shift(im, label, shift_type='horizontal', shiftamount=15):
     """
     x_center, y_center, w, h = label
     if shift_type == 'horizontal': 
+        shift_percentage = shiftamount / im.shape[1]
         axis = 1
-        shifted_center_x = x_center + shiftamount / im.shape[1]
+        shifted_center_x = x_center + shift_percentage
         shifted_center_y = y_center
     elif shift_type == 'vertical':
+        shift_percentage = shiftamount / im.shape[0]
         axis = 0
-        shifted_center_y = y_center + shiftamount / im.shape[0]
+        shifted_center_y = y_center + shift_percentage
         shifted_center_x = x_center
+    error_message = "Requested shift amount is more than 30% of the image size"
+    assert shift_percentage  <= 0.3, error_message    
     shifted_image = np.roll(im, shiftamount, axis=axis)
     shifted_label = [shifted_center_x, shifted_center_y, w, h]
     return shifted_image, shifted_label
@@ -105,33 +111,15 @@ def shift(im, label, shift_type='horizontal', shiftamount=15):
 
 def resize(im, label, new_height=416, new_width=416):
     """Resizes the image and its label to a given size"""
-    x_center, y_center, w, h = label
-    scale_w = new_width / im.shape[1]
-    scale_h = new_height / im.shape[0]
-    new_x = x_center * scale_w
-    new_y = y_center * scale_h
-    new_w = w * scale_w
-    new_h = h * scale_h
-    resized_label = [new_x, new_y, new_w, new_h]
     resized_im = cv2.resize(im, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-    return resized_im, resized_label
+    return np.array(resized_im), label
 
 
 
 if __name__ == '__main__':
-    test_im_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images\1_50.png'
-    test_label_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\labels\1_50.txt'
+    test_im_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images\1_52.png'
+    test_label_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\labels\1_52.txt'
     test_im = utils.read_nifti_image(test_im_path)
     test_label = utils.read_label_txt(test_label_path)
-    print(test_im.shape)
-    print(test_label)
-    viz.plot_image_bbox(test_im, test_label, title="Before resize")
-    # flipped_image, flipped_bbox_label = flip(test_im, test_label, flip_type='vertical')
-    rot_im, rot_box = resize(test_im, test_label)
-    viz.plot_image_bbox( rot_im, rot_box, title="After resize")
-    #with open(test_label_path, 'r') as f:
-    #    test_label = f.read(test_label_path)
-    # function to test    
-    #test_out = horizontal_flip(test_im, test_label)
-    # visualize
-    #visualize.plot_yolo(test_out)
+    new_im, new_label = resize(test_im, test_label)
+    viz.plot_augment_results(test_im, test_label, new_im, new_label, title='Resizing the image to 416x416', save_path='resize416.png')

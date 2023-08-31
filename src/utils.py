@@ -1,5 +1,6 @@
 
 import os
+import json
 import SimpleITK as sitk
 from PIL import Image
 import numpy as np
@@ -18,6 +19,22 @@ def read_nifti_image(ct_path, spacing=False):
         return ct_scan
     else:
         print("The file path doesn't exist")
+        
+
+def read_json(json_path, orientation=False):
+#get 3D bounding box coordinates from json file    
+    if os.path.exists(json_path):
+        with open(json_path) as f:
+            label_json = json.load(f)
+            x, y, z = label_json['markups'][0]['center']
+            width, height, length = label_json['markups'][0]['size']
+            center, dimension = [x,y,z], [width, height, length]
+            if orientation:
+                orientation = np.array(label_json['markups'][0]['orientation'])
+                return center, dimension, orientation
+            return center, dimension
+    else:
+        print(f"The file '{json_path}' does not exist.")
         
         
 def image_to_numpy(im_path):
@@ -57,8 +74,50 @@ def read_label_txt(label_path):
     except ValueError as ve:
         print("Error reading label:", ve)
         
+        
+def normalize_bbox(label, im_shape):
+    """ Normalizes coordinates of a bounding box. Divide x-coordinates by image width and y-coordinates by image height.
+    Args:
+        label: List of enormalized bounding box `[x_center, y_center, width, height]`.
+        im_size: [image width, image height]
+    """
+    im_h, im_w = im_shape
+    center_x, center_y, w, h = label
+    x_norm = center_x / im_w
+    y_norm = center_y / im_h
+    w_norm = w / im_w
+    h_norm = h / im_h
+    normalized_label = [x_norm, y_norm, w_norm, h_norm]
+    return normalized_label
+
+def denormalize_bbox(normalized_label, im_shape):
+    [x, y, w, h] = normalized_label
+    im_w, im_h = im_shape
+    new_w = w * im_w
+    new_h = h * im_h
+    new_x = x * im_w
+    new_y = y * im_h
+    return [new_x, new_y, new_w, new_h]
+
+
+def get_idxs_segment(mask):
+    """Get index of the slices that contain segmentation"""
+    segment_idx = []
+    for i in range(mask.shape[0]):
+        if sum(mask[i].ravel() > 0): #if there is a segmentation mask in slice i
+            segment_idx.append(i)
+    if not segment_idx:
+        raise ValueError("There is no segmentation mask")
+    else:
+        return segment_idx
+    
+
+    
+        
 
 if __name__ == "__main__":
     test_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images\1_50.png'
     test_load = image_to_numpy(test_path)
-    print(test_load.shape)
+    
+    print(normalize_bbox([298.04830178139736, 314.1616846492601, 16.94525418390228, 18.40430656868937], test_load.shape))
+    
