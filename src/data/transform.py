@@ -68,10 +68,6 @@ def rotate(im, label, factor=0):
     return np.ascontiguousarray(np.rot90(im, factor)), label
 
 
-def transpose(im, label):
-    pass
-
-
 def crop_around_bbox(im, label, crop_width, crop_height):
     im_h, im_w = im.shape
     if im_h < crop_height or im_w < crop_width:

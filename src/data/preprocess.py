@@ -185,4 +185,11 @@ if __name__ == '__main__':
     ct_im = transform.clip_values_3d(fix_direction(r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\og_ct.nii'))
     aorta_mask = transform.clip_values_3d(fix_direction(r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\aorta_mask.nii'))
     viz.plot_masks(ct_im, aorta_mask, save_path='aorta_mask_overlaid.png')
+    
+    
+    
+    
+    """ Note to self: randomly select and apply one of the augments to one ct image (3d)
+    """
+    
 
