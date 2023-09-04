@@ -1,10 +1,4 @@
 
-"""
-The cleanest way to do it is to have a build_dataset.py file that will be called once at the start of the project 
-and will create the split into train, dev and test. Optionally, calling build_dataset.py can also download the dataset.
-We need to make sure that any randomness involved in build_dataset.py uses a fixed seed so that every call to python build_dataset.py will result in the same output.
-
-"""
 import os
 import random
 import shutil
@@ -49,8 +43,8 @@ def train_test_split(source_images_folder, source_labels_folder, destination_fol
                 if os.path.exists(label_path):
                     destination_label_path = destination_folder / "labels" / split_folder / image
                     destination_label_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy(label_path, destination_label_path)
-                shutil.copy(image_path, destination_image_path)
+                    shutil.copy2(label_path, destination_label_path)
+                shutil.copy2(image_path, destination_image_path)
     else:
         print(f'The specified destination path  doesnt exist: {destination_folder}')
  
@@ -62,8 +56,8 @@ if __name__ == '__main__':
     for _ in range(3):
         directory = os.path.dirname(directory) #takes us to the project directory
         
-    source_images_folder = os.path.join(directory, "data\\processed\\aorta\\images")
-    source_labels_folder = os.path.join(directory, "data\\processed\\aorta\\labels")
-    destination_folder = os.path.join(directory, "data\\datasets\\aorta")
+    aorta_images_folder = os.path.join(directory, "data\\processed\\aorta\\images")
+    aorta_labels_folder = os.path.join(directory, "data\\processed\\aorta\\labels")
+    aorta_destination_folder = os.path.join(directory, "data\\datasets\\aorta")
     
-    train_test_split(source_images_folder, source_labels_folder, destination_folder)
+    train_test_split(aorta_images_folder, aorta_labels_folder, aorta_destination_folder)

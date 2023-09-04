@@ -171,7 +171,7 @@ if __name__ == '__main__':
 
     project_path = os.path.dirname(src_dir)
     aorta_folder_path = os.path.join(project_path, "data\\raw\\aorta")
-    destination_folder = os.path.join(project_path, "data\\processed\\aorta")
-    preprocess_aorta_data(aorta_folder_path, destination_folder, resize_to=416)
+    aorta_destination_folder = os.path.join(project_path, "data\\processed\\aorta")
+    preprocess_aorta_data(aorta_folder_path, aorta_destination_folder, resize_to=640)
     # preprocess the dataset again with augmentations appled
-    preprocess_aorta_data(aorta_folder_path, destination_folder, resize_to=416, apply_augment=True) 
+    preprocess_aorta_data(aorta_folder_path, aorta_destination_folder, resize_to=640, apply_augment=True) 

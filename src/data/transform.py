@@ -100,8 +100,6 @@ def random_shift(im, label):
         axis = 0
         shifted_center_y = y_center + shift_percentage
         shifted_center_x = x_center
-    error_message = "Requested shift amount is more than 30% of the image size"
-    assert shift_percentage  <= 0.3, error_message    
     shifted_image = np.roll(im, shift_amount, axis=axis)
     shifted_label = [shifted_center_x, shifted_center_y, w, h]
     return shifted_image, shifted_label
