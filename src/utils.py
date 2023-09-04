@@ -111,13 +111,8 @@ def get_idxs_segment(mask):
     else:
         return segment_idx
     
-
     
-        
-
-if __name__ == "__main__":
-    test_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images\1_50.png'
-    test_load = image_to_numpy(test_path)
+def random_item(items):
+    return items[np.random.randint(len(items))]
     
-    print(normalize_bbox([298.04830178139736, 314.1616846492601, 16.94525418390228, 18.40430656868937], test_load.shape))
     

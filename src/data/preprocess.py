@@ -3,33 +3,26 @@ import os
 import sys
 from pathlib import Path
 import SimpleITK as sitk
-import transform
-from visualizations import viz
-notebook_dir = os.getcwd()
-parent_dir = os.path.dirname(notebook_dir)
-sys.path.append(parent_dir)
+import transform as aug
+src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(src_dir)
 import utils
 
 
 
-def process_bifurcation_data(root_folder, destination_folder):
-    pass
+#def process_bifurcation_data(root_folder, destination_folder):
+#    pass
 
-
-""" 
-def process_aorta_data(aorta_folder_path, destination_folder):
-    "" Accepts a folder containing patients data folders. each of which has CT image and mask ""
-    for patient_folder in os.listdir(aorta_folder_path):
-        # mask3d_to_bbox_yolo(aorta_folder_path, patient_folder)
-        mask3d_to_bbox_yolo(aorta_folder_path, patient_folder, destination_folder)
-"""
-
-
-
-def augment_scan(image_path, label_path=None, clip_values=False, random_flip=False, random_rotate3D=False):
-    pass
-    
-
+def preprocess_aorta_data(aorta_folder_path, destination_folder, resize_to=416, apply_augment=False):
+    """ Accepts a folder containing patients data folders, each of which contain CT image and segmentation mask """
+    if os.path.exists(aorta_folder_path):
+        # Create the destination folder if it doesn't exist
+        os.makedirs(destination_folder, exist_ok=True)
+        for patient_folder in os.listdir(aorta_folder_path):
+            mask3d_to_bbox_yolo(aorta_folder_path, patient_folder, destination_folder, resize_to=resize_to, augment=apply_augment)
+    else:
+        print(f'Path doesnt exist: {aorta_folder_path}')
+      
 
 def bbox3d_to_yolo(root_folder, patient, destination_folder):
     """Converts 3D slices and 3D box coordinates to each 2D slices with 2D boxes and saves as png & txt"""
@@ -50,7 +43,7 @@ def bbox3d_to_yolo(root_folder, patient, destination_folder):
         for idx in range(ct_im.shape[0]):
             #write 3d images into 2d slice
             slice_data = ct_im[idx, :, :]
-            slice_data = transform.clip_values_2d(slice_data)
+            slice_data = aug.clip_values_2d(slice_data)
             slice_data = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
             # Convert the 2D slice to a PIL Image
             image_path = destination_folder / 'images' / f'{patient}_{str(idx)}.png'
@@ -71,7 +64,7 @@ def bbox3d_to_yolo(root_folder, patient, destination_folder):
 
 
 
-def mask3d_to_bbox_yolo(root_folder, patient, destination_folder):
+def mask3d_to_bbox_yolo(root_folder, patient, destination_folder, resize_to, augment=False):
     """Function to convert 3D segmentation mask to 2D bounding box for each slice then save
     patient_data_path containing CT scan and segmented aorta mask (both NIFTI files)
     """
@@ -79,26 +72,33 @@ def mask3d_to_bbox_yolo(root_folder, patient, destination_folder):
     mask_path = os.path.join(root_folder + "\\" + patient, 'aorta_mask.nii')
     ct_path = os.path.join(root_folder + "\\" + patient, 'og_ct.nii')
     if os.path.exists(mask_path) and os.path.exists(ct_path):
-        ct_im, mask = fix_direction(ct_path), fix_direction(mask_path)
+        ct_im, mask = aug.clip_values_3d(fix_direction(ct_path)), fix_direction(mask_path)
         slices_idx_with_segment = utils.get_idxs_segment(mask)
         for idx in range(ct_im.shape[0]):
-            #write 3d images into 2d slice
+            # Slice 3d images into 2d
             slice_data = ct_im[idx, :, :]
-            slice_data = transform.clip_values_2d(slice_data)
-            slice_data = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
+            img = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
             image_path = destination_folder / 'images' / f'{patient}_{str(idx)}.png'
-            image_path.parent.mkdir(parents=True, exist_ok=True)
-            utils.save_array_as_png(slice_data, image_path)
-            #write label files if there is a segmentation in the slice
+            # write label files if there is a segmentation in the slice
             if idx in slices_idx_with_segment:
-                label_line = '0 ' + ' '.join(map(str, calculate_bbox_from_slice(mask[idx])))
+                label = calculate_bbox_from_slice(mask[idx])
                 label_path = destination_folder / 'labels' / f'{patient}_{str(idx)}.txt'
+                if augment:
+                    img, label = aug.apply_random_augmentation(img, label)
+                    image_path = destination_folder / 'images' / f'{patient}_{str(idx)}_aug.png'
+                    label_path = destination_folder / 'labels' / f'{patient}_{str(idx)}_aug.txt'
+                #save label
+                label_line = '0 ' + ' '.join(map(str, label))
                 label_path.parent.mkdir(parents=True, exist_ok=True)
                 with label_path.open('w') as f:
                     f.write(label_line)
+            # Save slice as png image
+            image_path.parent.mkdir(parents=True, exist_ok=True)
+            utils.save_array_as_png(aug.resize(img, new_size=resize_to), image_path)
     else: 
         print(f'Path doesnt exist: {mask_path}')
-
+        
+       
 
 
 def get_3Dbox_coordinates(json_path, spacing):
@@ -143,7 +143,7 @@ def fix_direction(image_path):
 
 def calculate_bbox_from_slice(mask_slice):
     """Accepts single 2D slice of a binary mask 
-    returns normalized center_x, center_y, w, h relative to the image
+    returns normalized center_x, center_y, w, h relative to the image (in yolo label format)
     """
     non_zero_pixels = np.argwhere(mask_slice == 1)
     if len(non_zero_pixels) == 0:
@@ -155,41 +155,23 @@ def calculate_bbox_from_slice(mask_slice):
     center_y = (min_row + (max_row - min_row) / 2) / im_h
     width = (max_col - min_col) / im_w
     height = (max_row - min_row) / im_h
-    labels = [center_x, center_y, width, height]
-    return labels
+    label = [center_x, center_y, width, height]
+    return label
 
 
 
 
 
 if __name__ == '__main__':
-    #root_folder_path = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\bifurcation_point"
-    #destination_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point"
-    #bbox3d_to_yolo(root_folder_path, '1', destination_folder)
-    
-    #root_folder_path = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta"
-    #destination_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\aorta"
-    #mask3d_to_bbox_yolo(root_folder_path, 'PD002', destination_folder)
-    
-    
+
     # plot
     #images_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images"
     #labels_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\labels"
     #viz.plot_imgs_bboxes(images_folder, labels_folder, title="Sample slices from PD002", rows=2, columns=3, save_path='bifurcation_point_bbox.png')
-    
-    #images_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\aorta\images"
-    #labels_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\aorta\labels"
-    #viz.plot_imgs_bboxes(images_folder, labels_folder, title="Sample slices from PD002 with bounding box", columns=6, save_path='aorta_bbox.png')
-    
-    
-    ct_im = transform.clip_values_3d(fix_direction(r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\og_ct.nii'))
-    aorta_mask = transform.clip_values_3d(fix_direction(r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\aorta_mask.nii'))
-    viz.plot_masks(ct_im, aorta_mask, save_path='aorta_mask_overlaid.png')
-    
-    
-    
-    
-    """ Note to self: randomly select and apply one of the augments to one ct image (3d)
-    """
-    
 
+    project_path = os.path.dirname(src_dir)
+    aorta_folder_path = os.path.join(project_path, "data\\raw\\aorta")
+    destination_folder = os.path.join(project_path, "data\\processed\\aorta")
+    preprocess_aorta_data(aorta_folder_path, destination_folder, resize_to=416)
+    # preprocess the dataset again with augmentations appled
+    preprocess_aorta_data(aorta_folder_path, destination_folder, resize_to=416, apply_augment=True) 

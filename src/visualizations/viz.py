@@ -4,7 +4,8 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 import os
 import sys
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+current_dir = os.getcwd()
+parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 import utils
 
@@ -99,7 +100,10 @@ def plot_masks(ct_scan, mask, row=3, col=6, save_path=None):
 def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, save_path=None):
   # filter images with labels for plotting
   image_files, label_files = [], []
+  n = columns*rows
   for label_file in os.listdir(labels_folder):
+    if len(label_files) >= n:
+        break 
     label_files.append(os.path.join(labels_folder, label_file))
     for image_file in os.listdir(images_folder):
       if image_file.split('.')[0] == label_file.split('.')[0]:
