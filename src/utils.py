@@ -48,7 +48,7 @@ def extract_aorta_mask(segmentation_path, corresponding_ct_path, save_path):
         
         
         
-def save_extract_aorta_masks(root_data_folder):
+def save_extracted_aorta_masks(root_data_folder):
     for patient_folder in os.listdir(root_data_folder):
         PD = os.path.join(root_data_folder, patient_folder)
         if 'aorta_mask.nii' not in os.listdir(PD) and 'segmentation.seg.nrrd' in os.listdir(PD):
@@ -157,4 +157,4 @@ if __name__ == '__main__':
     
     
     root_data_folder = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\annotated_data_bii'
-    save_extract_aorta_masks(root_data_folder)
+    save_extracted_aorta_masks(root_data_folder)
