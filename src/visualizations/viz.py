@@ -4,9 +4,8 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 import os
 import sys
-current_dir = os.getcwd()
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
+src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(src_dir)
 import utils
 
 
@@ -133,4 +132,11 @@ def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, 
     plt.savefig(os.path.join(save_dir, save_path), bbox_inches='tight') 
   plt.show()
 
+
+
+
+if __name__ == '__main__':
+  ct = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\og_ct.nii'
+  mask = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\aorta_mask.nii'
+  plot_masks(utils.read_nifti_image(ct), utils.read_nifti_image(mask), row=4)
 

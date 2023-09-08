@@ -13,12 +13,15 @@ os.makedirs(os.path.join(PROJECT_PATH, 'experiments\\runs'), exist_ok=True)
 os.makedirs(os.path.join(PROJECT_PATH, 'experiments\\weights'), exist_ok=True)
 settings['runs_dir'] =  os.path.join(PROJECT_PATH, 'experiments\\runs')
 settings['weights_dir'] =  os.path.join(PROJECT_PATH, 'experiments\\weights')
-os.makedirs(save_dir, exist_ok=True)
 print(settings)
+save_dir = os.path.join(PROJECT_PATH, 'logs')
+os.makedirs(save_dir, exist_ok=True)
+
+
 
 
     
-def train_yolo(model, datayaml_path, project, save_dir):
+def train_yolo(model, datayaml_path, project):
     # Training.
     result = model.train(
         data = os.path.join(PROJECT_PATH, datayaml_path),
@@ -53,8 +56,7 @@ def train_yolo(model, datayaml_path, project, save_dir):
 
 if __name__ == '__main__':
     datayaml_path = 'data/datasets/aorta_dataset/data.yaml'
-    save_dir = 'logs'
     # Load a model
     model = YOLO('models//yolov8n.pt')
-    train_yolo(model, datayaml_path, 'logs//aorta_detection', save_dir)
+    train_yolo(model, datayaml_path, 'logs//detection')
     

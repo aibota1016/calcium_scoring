@@ -4,6 +4,8 @@ import json
 import SimpleITK as sitk
 from PIL import Image
 import numpy as np
+import nrrd
+import nibabel as nib
 
 
 def read_nifti_image(ct_path, spacing=False):
@@ -20,9 +22,41 @@ def read_nifti_image(ct_path, spacing=False):
     else:
         print("The file path doesn't exist")
         
+        
+def extract_aorta_mask(segmentation_path, corresponding_ct_path, save_path):
+    """Takes path to the seg.nrrd file and path to its corresponding ct image, extracts segmented aorta_mask and saves as nifti file"""
+    if os.path.exists(segmentation_path): 
+        data, header = nrrd.read(segmentation_path)
+        landmark_number = -1
+        if header['Segment0_Name'] == 'aorta_mask':
+            landmark_number = header['Segment0_LabelValue']
+        elif header['Segment1_Name'] == 'aorta_mask':
+            landmark_number = header['Segment1_LabelValue']
+        if landmark_number != -1:
+            landmark_mask = np.where(data == int(landmark_number), data, 0)
+            im = nib.load(corresponding_ct_path)
+            nifti_img = nib.Nifti1Image(landmark_mask, affine=im.affine)
+            try:
+                nib.save(nifti_img, save_path)
+                print(f"Image saved to {save_path}")
+            except Exception as e:
+                print(f"An error occurred while saving the image: {e}")
+        else:
+            print(f"Couldn't find aorta segmentation in {segmentation_path}")
+    else:
+        print("Segmentation file path doesn't exist")
+        
+        
+        
+def save_extract_aorta_masks(root_data_folder):
+    for patient_folder in os.listdir(root_data_folder):
+        PD = os.path.join(root_data_folder, patient_folder)
+        if 'aorta_mask.nii' not in os.listdir(PD) and 'segmentation.seg.nrrd' in os.listdir(PD):
+            extract_aorta_mask(os.path.join(PD,'segmentation.seg.nrrd'), os.path.join(PD,'og_ct.nii'), os.path.join(PD,'aorta_mask.nii'))
+   
 
 def read_json(json_path, orientation=False):
-#get 3D bounding box coordinates from json file    
+    """ reads 3D bounding box coordinates from json file """    
     if os.path.exists(json_path):
         with open(json_path) as f:
             label_json = json.load(f)
@@ -116,3 +150,11 @@ def random_item(items):
     return items[np.random.randint(len(items))]
     
     
+
+
+
+if __name__ == '__main__':
+    
+    
+    root_data_folder = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\annotated_data_bii'
+    save_extract_aorta_masks(root_data_folder)

@@ -1,0 +1,71 @@
+{
+    "@schema": "https://raw.githubusercontent.com/slicer/slicer/master/Modules/Loadable/Markups/Resources/Schema/markups-schema-v1.0.3.json#",
+    "markups": [
+        {
+            "type": "ROI",
+            "coordinateSystem": "LPS",
+            "coordinateUnits": "mm",
+            "locked": false,
+            "fixedNumberOfControlPoints": false,
+            "labelFormat": "%N-%d",
+            "lastUsedControlPointNumber": 1,
+            "roiType": "Box",
+            "center": [10.978903770446778, -11.468056678771973, 1770.3262939453126],
+            "orientation": [-1.0, -0.0, -0.0, -0.0, -1.0, -0.0, 0.0, 0.0, 1.0],
+            "size": [4.440859208725327, 4.945460639983539, 6.735842258927278],
+            "insideOut": false,
+            "controlPoints": [
+                {
+                    "id": "1",
+                    "label": "R_6-1",
+                    "description": "",
+                    "associatedNodeID": "",
+                    "position": [10.978903770446778, -11.468056678771973, 1770.3262939453126],
+                    "orientation": [-1.0, -0.0, -0.0, -0.0, -1.0, -0.0, 0.0, 0.0, 1.0],
+                    "selected": true,
+                    "locked": false,
+                    "visibility": true,
+                    "positionStatus": "defined"
+                }
+            ],
+            "measurements": [
+                {
+                    "name": "volume",
+                    "enabled": false,
+                    "units": "cm3",
+                    "printFormat": "%-#4.4g%s"
+                }
+            ],
+            "display": {
+                "visibility": true,
+                "opacity": 1.0,
+                "color": [0.4, 1.0, 1.0],
+                "selectedColor": [0.8392156862745098, 0.5019607843137255, 0.7019607843137254],
+                "activeColor": [0.4, 1.0, 0.0],
+                "propertiesLabelVisibility": true,
+                "pointLabelsVisibility": false,
+                "textScale": 3.0,
+                "glyphType": "Sphere3D",
+                "glyphScale": 3.0,
+                "glyphSize": 5.0,
+                "useGlyphScale": true,
+                "sliceProjection": false,
+                "sliceProjectionUseFiducialColor": true,
+                "sliceProjectionOutlinedBehindSlicePlane": false,
+                "sliceProjectionColor": [1.0, 1.0, 1.0],
+                "sliceProjectionOpacity": 0.6,
+                "lineThickness": 0.2,
+                "lineColorFadingStart": 1.0,
+                "lineColorFadingEnd": 10.0,
+                "lineColorFadingSaturation": 1.0,
+                "lineColorFadingHueOffset": 0.0,
+                "handlesInteractive": true,
+                "translationHandleVisibility": true,
+                "rotationHandleVisibility": false,
+                "scaleHandleVisibility": true,
+                "interactionHandleScale": 3.0,
+                "snapMode": "toVisibleSurface"
+            }
+        }
+    ]
+}

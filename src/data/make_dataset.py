@@ -39,9 +39,10 @@ def train_test_split(source_images_folder, source_labels_folder, destination_fol
                 image_path = os.path.join(source_images_folder, image) 
                 destination_image_path = destination_folder / "images" / split_folder / image
                 destination_image_path.parent.mkdir(parents=True, exist_ok=True)
-                label_path = os.path.join(source_labels_folder, image.split('.')[0] + '.txt')
+                label_file = image.split('.')[0] + '.txt'
+                label_path = os.path.join(source_labels_folder, label_file)
                 if os.path.exists(label_path):
-                    destination_label_path = destination_folder / "labels" / split_folder / image
+                    destination_label_path = destination_folder / "labels" / split_folder / label_file
                     destination_label_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(label_path, destination_label_path)
                 shutil.copy2(image_path, destination_image_path)

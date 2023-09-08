@@ -7,21 +7,34 @@ import transform as aug
 src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(src_dir)
 import utils
+from visualizations import viz
+
+
+""" 
+    Notes as of 07 Sept:
+    - combine aorta and bifurcation point labels, train only one detection model for both
+    - implement pytorch Dataset class & online augmentation
+    - don't resize to 640, use original 512
+    - update EDA notebook after labelling all clinical data and combining
+    - write function to extract aorta_mask.nii from seg.nrrd files ~done
+    - write function to plot both aorta and bifurcation bboxes on same image 
+    - Use 5:1 fold for train and validation split
+"""
 
 
 
-#def process_bifurcation_data(root_folder, destination_folder):
-#    pass
 
-def preprocess_aorta_data(aorta_folder_path, destination_folder, resize_to=416, apply_augment=False):
+
+
+def preprocess_data(root_data_folder, destination_folder, resize_to=416, apply_augment=False):
     """ Accepts a folder containing patients data folders, each of which contain CT image and segmentation mask """
-    if os.path.exists(aorta_folder_path):
+    if os.path.exists(root_data_folder):
         # Create the destination folder if it doesn't exist
         os.makedirs(destination_folder, exist_ok=True)
-        for patient_folder in os.listdir(aorta_folder_path):
-            mask3d_to_bbox_yolo(aorta_folder_path, patient_folder, destination_folder, resize_to=resize_to, augment=apply_augment)
+        for patient_folder in os.listdir(root_data_folder):
+            mask3d_to_bbox_yolo(root_data_folder, patient_folder, destination_folder, resize_to=resize_to, augment=apply_augment)
     else:
-        print(f'Path doesnt exist: {aorta_folder_path}')
+        print(f'Path doesnt exist: {root_data_folder}')
       
 
 def bbox3d_to_yolo(root_folder, patient, destination_folder):
@@ -163,15 +176,26 @@ def calculate_bbox_from_slice(mask_slice):
 
 
 if __name__ == '__main__':
+    pass
 
     # plot
     #images_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images"
     #labels_folder = r"C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\labels"
     #viz.plot_imgs_bboxes(images_folder, labels_folder, title="Sample slices from PD002", rows=2, columns=3, save_path='bifurcation_point_bbox.png')
 
-    project_path = os.path.dirname(src_dir)
-    aorta_folder_path = os.path.join(project_path, "data\\raw\\aorta")
-    aorta_destination_folder = os.path.join(project_path, "data\\processed\\aorta")
-    preprocess_aorta_data(aorta_folder_path, aorta_destination_folder, resize_to=640)
+    #project_path = os.path.dirname(src_dir)
+    #aorta_folder_path = os.path.join(project_path, "data\\raw\\aorta")
+    #aorta_destination_folder = os.path.join(project_path, "data\\processed\\aorta")
+    #preprocess_data(aorta_folder_path, aorta_destination_folder, resize_to=640)
     # preprocess the dataset again with augmentations appled
-    preprocess_aorta_data(aorta_folder_path, aorta_destination_folder, resize_to=640, apply_augment=True) 
+    #preprocess_data(aorta_folder_path, aorta_destination_folder, resize_to=640, apply_augment=True) 
+    
+    
+    #nrrd_file = r'C:\Users\sanatbyeka\Desktop\bifurcation_markup\PD127\aorta_mask.nrrd'
+    #og_ct_path = r'C:\Users\sanatbyeka\Desktop\bifurcation_markup\PD127\og_ct.nii'
+    #save_path = r'C:\Users\sanatbyeka\Desktop\bifurcation_markup\PD127\aorta_mask.nii'
+
+    #utils.extract_aorta_mask(nrrd_file, og_ct_path, save_path)
+    #viz.plot_masks(fix_direction(og_ct_path), fix_direction(save_path), row=4)
+    
+    
