@@ -1,4 +1,6 @@
 # ignore all files in directory 
-data/
+data/raw/
+data/datasets
+data/processes
 
 .DS_store
