@@ -24,31 +24,13 @@ def plot_scan_slices(ct_scan, n=5, window=500, level=100):
     plt.show()
 
 
-def plot_mid_slice(ct_scan):
+def plot_single_slice(slice):
   """ plots mid slice of a CT scan """
-  mid = int(ct_scan.shape[0] / 2)
-  plt.imshow(ct_scan[mid, :, :], cmap='gray')
+  plt.imshow(slice, cmap='gray')
   plt.colorbar(label='Signal intensity')
-  plt.title(f'Slice {mid}')
   plt.show() 
   
-  
-def plot_image_bbox(im_array, label, title=""):
-  """
-  Plots a single 2d array image with its bounding box labels
-  Args:
-    label is a list containing x_center, y_center, width, heiht in yolo format
-  """
-  plt.imshow(im_array, cmap=plt.cm.gray)
-  if title != "":
-    plt.title(title)
-  [x, y, w, h] = utils.denormalize_bbox(label, im_array.shape)
-  x_min = x - w / 2
-  y_min = y - h / 2
-  box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
-  plt.gca().add_patch(box)
-  plt.colorbar(label='Signal intensity')
-  plt.show()
+
   
 
 def plot_augment_results(im, label, augmented_im, augmented_label, title="", save_path=None):
@@ -95,13 +77,35 @@ def plot_masks(ct_scan, mask, row=3, col=6, save_path=None):
     plt.show()
     
 
+  
+def plot_bboxes_single_image(im_path, label_path, title=""):
+  """
+  Plots a single 2d array image with its bounding box labels
+  Args:
+    label is a list containing x_center, y_center, width, heiht in yolo format
+  """
+  im_array = utils.image_to_numpy(im_path)
+  label = utils.read_label_txt(label_path)
+  
+  plt.imshow(im_array, cmap=plt.cm.gray)
+  if title != "":
+    plt.title(title)
+  for line in label:
+    [x, y, w, h] = utils.denormalize_bbox(line[1:], im_array.shape)
+    x_min = x - w / 2
+    y_min = y - h / 2
+    box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
+    plt.gca().add_patch(box)
+  plt.colorbar(label='Signal intensity')
+  plt.show()
+
 
 def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, save_path=None):
   # filter images with labels for plotting
   image_files, label_files = [], []
   n = columns*rows
   for label_file in os.listdir(labels_folder):
-    if len(label_files) >= n:
+    if len(label_files) >= n*n:
         break 
     label_files.append(os.path.join(labels_folder, label_file))
     for image_file in os.listdir(images_folder):
@@ -111,19 +115,26 @@ def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, 
   #plot
   fig, axes = plt.subplots(rows, columns, figsize=(columns*3, rows*3))
   fig.suptitle(title, fontsize=16)
+  j = 0
   for i, (image_file, label_file) in enumerate(zip(image_files, label_files)):
-    if i < columns * rows:
-      ax = axes.flat[i]
-      # Read and display the image
-      img = utils.image_to_numpy(image_file)
-      ax.imshow(img, cmap='gray')
-      # Draw bounding box
-      [x, y, w, h] = utils.denormalize_bbox(utils.read_label_txt(label_file), img.shape)
-      rect = patches.Rectangle((x-w/2, y-h/2), w, h, linewidth=1, edgecolor='red', facecolor='none')
-      slice_idx = (image_file.split('_')[-1]).split('.')[0]
-      ax.set_title("Slice " + slice_idx)
-      ax.add_patch(rect)
-      ax.axis('off')
+    if j < columns * rows:
+      label = utils.read_label_txt(label_file)
+      if len(label) > 1:
+        ax = axes.flat[j]
+        # Read and display the image
+        img = utils.image_to_numpy(image_file)
+        ax.imshow(img, cmap='gray')
+        # Draw bounding box
+        for line in label:
+          [x, y, w, h] = utils.denormalize_bbox(line[1:], img.shape)
+          x_min = x - w / 2
+          y_min = y - h / 2
+          box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
+          ax.add_patch(box)
+        slice_idx = (image_file.split('\\')[-1]).split('.')[0]
+        ax.set_title(slice_idx)
+        ax.axis('off')
+        j = j + 1
   # save plot as file
   if save_path:
     save_dir = "src/visualizations"
@@ -136,7 +147,7 @@ def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, 
 
 
 if __name__ == '__main__':
-  ct = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\og_ct.nii'
-  mask = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\raw\aorta\PD002\aorta_mask.nii'
-  plot_masks(utils.read_nifti_image(ct), utils.read_nifti_image(mask), row=4)
-
+  im_path = r'E:\Aibota\calcium_scoring\data\processed\images\PD158_35.png'
+  label = r'E:\Aibota\calcium_scoring\data\processed\labels\PD158_35.txt'
+  plot_bboxes_single_image(im_path, label)
+  plot_imgs_bboxes(r'E:\Aibota\calcium_scoring\data\processed\images', r'E:\Aibota\calcium_scoring\data\processed\labels', columns=7, rows=4, save_path=r'E:\Aibota\calcium_scoring\src\visualizations\aorta_bbox.png')
