@@ -3,6 +3,97 @@ import os
 import random
 import shutil
 from pathlib import Path
+from collections import Counter
+import yaml
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import KFold
+from tqdm import tqdm
+import time
+
+
+
+def k_fold_split(dataset_path, save_path, k=5):
+    print("Reading label files... \n")
+    labels = sorted(dataset_path.rglob("*labels/*.txt"))
+    images = sorted((dataset_path / 'images').rglob("*.png"))  
+    assert len(labels) == len(images)
+
+    yaml_file = dataset_path / "dataset.yaml"
+    assert os.path.exists(yaml_file), "The datasets folder do not contain the dataset.yaml file"
+    with open(yaml_file, 'r', encoding="utf8") as y:
+        classes = yaml.safe_load(y)['names']
+        
+    cls_idx = list(range(len(classes)))
+    indx = [l.stem for l in labels]
+    labels_df = pd.DataFrame([], columns=cls_idx, index=indx)
+    
+    for label in labels:
+        lbl_counter = Counter()
+        with open(label,'r') as lf:
+            lines = lf.readlines()
+        for l in lines:
+            if l != '\n':
+                lbl_counter[int(l.split(' ')[0])] += 1
+                labels_df.loc[label.stem] = lbl_counter
+    labels_df = labels_df.fillna(0.0)
+    for i in labels_df.columns:
+        print(f"Number of instances in {classes[i]} class: ", labels_df[i].sum())
+    
+    print(f"\nSplitting files into {k} folds... \n")
+    kf = KFold(n_splits=k, shuffle=True, random_state=20)
+    kfolds = list(kf.split(labels_df))
+    folds = [f'split_{n}' for n in range(1, k + 1)]
+    folds_df = pd.DataFrame(index=indx, columns=folds)
+
+    for idx, (train, val) in enumerate(kfolds, start=1):
+        folds_df[f'split_{idx}'].loc[labels_df.iloc[train].index] = 'train'
+        folds_df[f'split_{idx}'].loc[labels_df.iloc[val].index] = 'val'
+    print("Number of data: ", len(folds_df))
+    print('...............................................\n')
+
+    fold_lbl_distrb = pd.DataFrame(index=folds, columns=cls_idx)
+    for n, (train_indices, val_indices) in enumerate(kfolds, start=1):
+        train_totals = labels_df.iloc[train_indices].sum()
+        val_totals = labels_df.iloc[val_indices].sum()
+        ratio = val_totals / (train_totals + 1E-7)
+        fold_lbl_distrb.loc[f'split_{n}'] = ratio
+    print("\nDistribution of class labels for each fold as a ratio of the classes present in val to those present in train: \n", fold_lbl_distrb)
+    
+    # Create the directories and dataset YAML files for each split
+    print("Creating split folders...")
+    save_path.mkdir(parents=True, exist_ok=True)
+    print("Creating yaml files...")
+    ds_yamls = []
+    for split in folds_df.columns:
+        split_dir = save_path / split
+        split_dir.mkdir(parents=True, exist_ok=True)
+        (split_dir / 'train' / 'images').mkdir(parents=True, exist_ok=True)
+        (split_dir / 'train' / 'labels').mkdir(parents=True, exist_ok=True)
+        (split_dir / 'val' / 'images').mkdir(parents=True, exist_ok=True)
+        (split_dir / 'val' / 'labels').mkdir(parents=True, exist_ok=True)
+        # Create dataset YAML files
+        dataset_yaml = split_dir / f'{split}_dataset.yaml'
+        ds_yamls.append(dataset_yaml)
+        with open(dataset_yaml, 'w') as ds_y:
+            yaml.safe_dump({
+                'path': split_dir.as_posix(),
+                'train': 'train/images',
+                'val': 'val/images',
+                'names': classes
+            }, ds_y)
+    print("Copying files to each split...")
+    for image, label in tqdm(zip(images, labels), total=len(images)):
+        for split, k_split in folds_df.loc[image.stem].items():
+            img_to_path = save_path / split / k_split / 'images'
+            lbl_to_path = save_path / split / k_split / 'labels'
+            shutil.copy(image, img_to_path / image.name)
+            shutil.copy(label, lbl_to_path / label.name)
+    print("K-Fold split performed successfully")
+    folds_df.to_csv(save_path / "kfold_datasplit.csv")
+    fold_lbl_distrb.to_csv(save_path / "kfold_label_distribution.csv")
+
+
 
 
     
@@ -52,13 +143,11 @@ def train_test_split(source_images_folder, source_labels_folder, destination_fol
     
     
 if __name__ == '__main__':
-    
-    directory = os.path.abspath(__file__) # current script's absolute path
-    for _ in range(3):
-        directory = os.path.dirname(directory) #takes us to the project directory
         
-    aorta_images_folder = os.path.join(directory, "data\\processed\\aorta\\images")
-    aorta_labels_folder = os.path.join(directory, "data\\processed\\aorta\\labels")
-    aorta_destination_folder = os.path.join(directory, "data\\datasets\\aorta")
+    dataset_path = Path('../calcium_scoring/data/processed')
+    save_path = Path(dataset_path.parent / 'datasets' / f'{5}-Fold_Cross-val')
     
-    train_test_split(aorta_images_folder, aorta_labels_folder, aorta_destination_folder)
+    k_fold_split(dataset_path, save_path)
+    
+        
+    #train_test_split(images_folder, labels_folder, destination_folder)

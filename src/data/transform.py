@@ -107,8 +107,9 @@ def random_shift(im, label):
 
 def resize(im, new_size):
     """Resizes the image and its label to a given size"""
-    resized_im = cv2.resize(im, (new_size, new_size), interpolation=cv2.INTER_LINEAR)
-    return np.array(resized_im)
+    if im.shape[0] != new_size:
+        resized_im = cv2.resize(im, (new_size, new_size), interpolation=cv2.INTER_LINEAR)
+        return np.array(resized_im)
 
 def apply_random_augmentation(im, label):
     augment_functions = [random_flip, random_rotate, random_crop_around_bbox, random_shift]

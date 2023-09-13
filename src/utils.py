@@ -237,6 +237,9 @@ def denormalize_bbox(normalized_label, im_shape):
     
 def random_item(items):
     return items[np.random.randint(len(items))]
+
+
+
     
     
 

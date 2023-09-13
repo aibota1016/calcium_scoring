@@ -19,7 +19,7 @@ import nibabel as nib
     - update EDA notebook after labelling all clinical data and combining
     - write function to extract aorta_mask.nii from seg.nrrd files ~ done
     - modify function to plot both aorta and bifurcation bboxes on same image ~ done
-    - Use 5:1 fold for train and validation split
+    - Implement 5-fold for train and validation split
 """
 
 
@@ -27,7 +27,7 @@ import nibabel as nib
 
 
 
-def preprocess_data(root_data_folder, destination_folder, resize_to=640):
+def preprocess_data(root_data_folder, destination_folder, resize_to=512):
     """ Accepts a folder containing patients data folders, each of which contain CT image and segmentation mask """
     if os.path.exists(root_data_folder):
         os.makedirs(destination_folder, exist_ok=True)
@@ -52,20 +52,18 @@ def preprocess_patient_data(root_folder, patient_name, destination_folder):
             slice_data = ct_im[idx, :, :]
             img = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
             image_path = destination_folder / 'images' / f'{patient_name}_{str(idx)}.png'
-            # write label files if there is a segmentation in the slice
             label_line_aorta, label_line_bifurcation = '', ''
             if idx in aorta_idxs:
                 label_aorta = utils.calculate_bbox_from_slice(mask[idx])
                 label_line_aorta = '0 ' + ' '.join(map(str, label_aorta))
             if idx in bifurcation_idxs:
                 label_line_bifurcation = '1 ' + ' '.join(map(str, label_bifurcation))
-            if label_line_aorta != '':
-                #save label
-                label_path = destination_folder / 'labels' / f'{patient_name}_{str(idx)}.txt'
-                label_path.parent.mkdir(parents=True, exist_ok=True)
-                with label_path.open('w') as f:
-                    f.write(label_line_aorta + '\n' + label_line_bifurcation)
-            # Save slice as png image
+            # Save    
+            label_path = destination_folder / 'labels' / f'{patient_name}_{str(idx)}.txt'
+            label_path.parent.mkdir(parents=True, exist_ok=True)
+            label_lines = label_line_aorta + '\n' + label_line_bifurcation
+            with label_path.open('w') as f:
+                f.write(label_lines)
             image_path.parent.mkdir(parents=True, exist_ok=True)
             utils.save_array_as_png(img, image_path)
     else: 
