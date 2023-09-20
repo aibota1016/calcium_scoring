@@ -23,7 +23,7 @@ def k_fold_split(dataset_path, save_path, k=5):
     assert os.path.exists(yaml_file), "The datasets folder do not contain the dataset.yaml file"
     with open(yaml_file, 'r', encoding="utf8") as y:
         classes = yaml.safe_load(y)['names']
-        
+ 
     cls_idx = list(range(len(classes)))
     indx = [l.stem for l in labels]
     labels_df = pd.DataFrame([], columns=cls_idx, index=indx)
@@ -45,11 +45,10 @@ def k_fold_split(dataset_path, save_path, k=5):
     kfolds = list(kf.split(labels_df))
     folds = [f'split_{n}' for n in range(1, k + 1)]
     folds_df = pd.DataFrame(index=indx, columns=folds)
-
+    print("Number of total data: ", len(folds_df))
     for idx, (train, val) in enumerate(kfolds, start=1):
         folds_df[f'split_{idx}'].loc[labels_df.iloc[train].index] = 'train'
         folds_df[f'split_{idx}'].loc[labels_df.iloc[val].index] = 'val'
-    print("Number of data: ", len(folds_df))
     print('...............................................\n')
 
     fold_lbl_distrb = pd.DataFrame(index=folds, columns=cls_idx)
@@ -59,7 +58,7 @@ def k_fold_split(dataset_path, save_path, k=5):
         ratio = val_totals / (train_totals + 1E-7)
         fold_lbl_distrb.loc[f'split_{n}'] = ratio
     print("\nDistribution of class labels for each fold as a ratio of the classes present in val to those present in train: \n", fold_lbl_distrb)
-    
+    """ 
     # Create the directories and dataset YAML files for each split
     print("Creating split folders...")
     save_path.mkdir(parents=True, exist_ok=True)
@@ -90,6 +89,7 @@ def k_fold_split(dataset_path, save_path, k=5):
             shutil.copy(image, img_to_path / image.name)
             shutil.copy(label, lbl_to_path / label.name)
     print("K-Fold split performed successfully")
+    """
     folds_df.to_csv(save_path / "kfold_datasplit.csv")
     fold_lbl_distrb.to_csv(save_path / "kfold_label_distribution.csv")
 
@@ -147,7 +147,7 @@ if __name__ == '__main__':
     dataset_path = Path('../calcium_scoring/data/processed')
     save_path = Path(dataset_path.parent / 'datasets' / f'{5}-Fold_Cross-val')
     
-    k_fold_split(dataset_path, save_path)
+    k_fold_split(dataset_path/'bifurcation_only', save_path)
     
         
     #train_test_split(images_folder, labels_folder, destination_folder)
