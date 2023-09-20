@@ -58,7 +58,7 @@ def k_fold_split(dataset_path, save_path, k=5):
         ratio = val_totals / (train_totals + 1E-7)
         fold_lbl_distrb.loc[f'split_{n}'] = ratio
     print("\nDistribution of class labels for each fold as a ratio of the classes present in val to those present in train: \n", fold_lbl_distrb)
-    """ 
+    
     # Create the directories and dataset YAML files for each split
     print("Creating split folders...")
     save_path.mkdir(parents=True, exist_ok=True)
@@ -89,7 +89,7 @@ def k_fold_split(dataset_path, save_path, k=5):
             shutil.copy(image, img_to_path / image.name)
             shutil.copy(label, lbl_to_path / label.name)
     print("K-Fold split performed successfully")
-    """
+    
     folds_df.to_csv(save_path / "kfold_datasplit.csv")
     fold_lbl_distrb.to_csv(save_path / "kfold_label_distribution.csv")
 
