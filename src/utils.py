@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 import nrrd
 import nibabel as nib
+import torch
 
 
 def read_nifti_image(ct_path, only_img=True):
@@ -62,8 +63,9 @@ def extract_aorta_mask(segmentation_path, corresponding_ct_path, save_path):
 def save_extracted_aorta_masks(root_data_folder):
     for patient_folder in os.listdir(root_data_folder):
         PD = os.path.join(root_data_folder, patient_folder)
-        if 'aorta_mask.nii' not in os.listdir(PD) and 'segmentation.seg.nrrd' in os.listdir(PD):
-            extract_aorta_mask(os.path.join(PD,'segmentation.seg.nrrd'), os.path.join(PD,'og_ct.nii'), os.path.join(PD,'aorta_mask.nii'))
+        if os.path.isdir(PD):
+            if 'aorta_mask.nii' not in os.listdir(PD) and 'segmentation.seg.nrrd' in os.listdir(PD):
+                extract_aorta_mask(os.path.join(PD,'segmentation.seg.nrrd'), os.path.join(PD,'og_ct.nii'), os.path.join(PD,'aorta_mask.nii'))
             
             
             
@@ -239,6 +241,10 @@ def random_item(items):
     return items[np.random.randint(len(items))]
 
 
+def load_model(model_path):
+    with open(model_path, 'rb') as f:
+        loaded_model = torch.load(f)
+    return loaded_model
 
     
     
@@ -250,3 +256,11 @@ if __name__ == '__main__':
     
     root_data_folder = r'E:\Aibota\annotated_data_bii'
     save_extracted_aorta_masks(root_data_folder)
+    
+    #import shutil
+    #source = r'E:\Aibota\aorta_seg_inference'
+    #dest = r'E:\Aibota\data_part2'
+    #for folder in os.listdir(source):
+    #    file_path = os.path.join(source, folder, "og_ct", "og_ct_seg.nii.gz")
+    #    shutil.copy(file_path, os.path.join(dest, folder))
+    #    print(f"File copied from {file_path} to {os.path.join(dest, folder)}")

@@ -10,9 +10,11 @@ def check_raw_data(data_root_folder):
     """
     assert os.path.exists(data_root_folder), "Given data folder doesnt exist"
     for PD in os.listdir(data_root_folder):
-        assert 'og_ct.nii' in os.listdir(os.path.join(data_root_folder, PD)), f"CT image og_ct.nii doesnt exist in the folder: {PD}"
-        assert 'aorta_mask.nii' in os.listdir(os.path.join(data_root_folder, PD)), f"Aorta segmentation mask aorta_mask.nii doesnt exist in the folder: {PD}"
-        assert 'bifurcation.json' in os.listdir(os.path.join(data_root_folder, PD)), f"3D bifurcation point markup bifurcation.json doesnt exist in the folder: {PD}"
+        data_folder_path = os.path.join(data_root_folder, PD)
+        if os.path.isdir(data_folder_path):
+            assert 'og_ct.nii' in os.listdir(data_folder_path), f"CT image og_ct.nii doesnt exist in the folder: {PD}"
+            assert 'aorta_mask.nii' in os.listdir(data_folder_path), f"Aorta segmentation mask aorta_mask.nii doesnt exist in the folder: {PD}"
+            assert 'bifurcation.json' in os.listdir(data_folder_path), f"3D bifurcation point markup bifurcation.json doesnt exist in the folder: {PD}"
     
     
     

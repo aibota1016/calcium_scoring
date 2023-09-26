@@ -2,23 +2,13 @@
 
 import os
 import yaml
+from pathlib import Path
 from ultralytics import YOLO
 from ultralytics import settings
-
-
-
-
-PROJECT_PATH = os.path.dirname(os.path.dirname(os.getcwd()))
-
-settings['datasets_dir'] = os.path.join(PROJECT_PATH, 'data\\datasets')
-os.makedirs(os.path.join(PROJECT_PATH, 'experiments\\runs'), exist_ok=True)
-os.makedirs(os.path.join(PROJECT_PATH, 'experiments\\weights'), exist_ok=True)
-settings['runs_dir'] =  os.path.join(PROJECT_PATH, 'experiments\\runs')
-settings['weights_dir'] =  os.path.join(PROJECT_PATH, 'experiments\\weights')
-print(settings)
-save_dir = os.path.join(PROJECT_PATH, 'logs')
-os.makedirs(save_dir, exist_ok=True)
-
+from ultralytics.engine.model import Model
+from utils import load_model
+from sahi.utils.yolov8 import download_yolov8s_model
+from sahi import AutoDetectionModel
 
 
 
@@ -28,7 +18,7 @@ def train_default(model, datayaml_path, project, epoch):
     see: https://docs.ultralytics.com/usage/cfg/#train
     """
     result = model.train(
-        data = os.path.join(PROJECT_PATH, datayaml_path),
+        data = datayaml_path,
         task = 'detect',
         epochs = epoch,
         verbose = True,
@@ -36,10 +26,9 @@ def train_default(model, datayaml_path, project, epoch):
         device = 0,
         project = project,
         seed = 42,
-        save_dir=save_dir,
+        save_dir='logs',
         exist_ok = True,
         plots = True,
-        save = True
         )
     
     print(result)
@@ -47,11 +36,31 @@ def train_default(model, datayaml_path, project, epoch):
     #results = model.val()
     #success = model.export(format="onnx")
     
+    
+def train_default_kfold_split(model, k_split, data_path, project_name, epoch, save_dir):
+    results = {}
+    ds_yamls = []
+    for split_folder in os.listdir(data_path):
+        split_folder_path = os.path.join(data_path, split_folder)
+        if os.path.isdir(split_folder_path):
+            for yml_file in os.listdir(split_folder_path):
+                if yml_file.endswith(".yaml"):
+                    ds_yamls.append(os.path.join(split_folder_path, yml_file))
+        
+    for k in range(k_split):
+        print("FOLD NUMBER: ", k)
+        dataset_yaml = ds_yamls[k]
+        model.train(data=dataset_yaml,epochs=epoch, project=project_name, save_dir=save_dir)  
+        results[k] = model.metrics
+        print('###########################################################################################\n')
+    return results 
+
+    
+    
 def train_SAHI(model, model_path):
-    """For small object detection, see: https://docs.ultralytics.com/guides/sahi-tiled-inference/"""
+    """For small object detection, 
+    see: https://docs.ultralytics.com/guides/sahi-tiled-inference/"""
     # pip install -U ultralytics sahi
-    from sahi.utils.yolov8 import download_yolov8s_model
-    from sahi import AutoDetectionModel
     
     detection_model = AutoDetectionModel.from_pretrained(
     model_type=model,
@@ -77,8 +86,21 @@ def custom_train(model, args):
 
 
 if __name__ == '__main__':
-    datayaml_path = 'data/datasets/data.yaml'
+    
+    project_path = r'E:\Aibota\calcium_scoring'
+    #settings['datasets_dir'] = os.path.join(project_path, 'data\\datasets')
+    #settings['runs_dir'] =  os.path.join(project_path, 'experiments\\runs')
+    #settings['weights_dir'] =  os.path.join(project_path, 'experiments\\weights')
+    save_dir = os.path.join(project_path, 'logs')
+    os.makedirs(save_dir, exist_ok=True)
+    
+    data_path = os.path.join(project_path, 'data//datasets//aorta_bifurcation_mix_60data')
+    
     # Load a model
-    model = YOLO('models//yolov8n.pt')
-    train_default(model, datayaml_path, 'logs//detection')
+    import torch
+    model_path = os.path.join(project_path, 'models', 'yolov8n.pt')
+    loaded_model = load_model(model_path)
+    assert type(loaded_model) != dict
+    
+    train_default_kfold_split(model=loaded_model, k_split=5, data_path=data_path, project_name='experiments\\train_60data', epoch=10, save_dir=save_dir)
     
