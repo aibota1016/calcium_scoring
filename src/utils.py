@@ -257,10 +257,25 @@ if __name__ == '__main__':
     root_data_folder = r'E:\Aibota\annotated_data_bii'
     save_extracted_aorta_masks(root_data_folder)
     
-    #import shutil
+    import shutil
     #source = r'E:\Aibota\aorta_seg_inference'
     #dest = r'E:\Aibota\data_part2'
     #for folder in os.listdir(source):
     #    file_path = os.path.join(source, folder, "og_ct", "og_ct_seg.nii.gz")
     #    shutil.copy(file_path, os.path.join(dest, folder))
     #    print(f"File copied from {file_path} to {os.path.join(dest, folder)}")
+    
+    
+    """ 
+    source = r'E:\interim'
+    dest = r'E:\Aibota\annotated_data_bii'
+    for PD in os.listdir(source):
+        pd_path = os.path.join(source, PD)
+        for date_folder in os.listdir(pd_path):
+            for filename in os.listdir(os.path.join(pd_path, date_folder, 'NCCT')):
+                if filename.endswith('.xls'):
+                    if filename.split('.')[0].split('_')[-1] == 'LM' and os.path.exists(os.path.join(dest, PD, filename)) is False and os.path.exists(os.path.join(dest, PD)):
+                        file_path = os.path.join(pd_path, date_folder, 'NCCT', filename)
+                        shutil.copy(file_path, os.path.join(dest, PD))
+                        print(f"File copied from {file_path} to {os.path.join(dest, PD)}")
+    """
