@@ -76,7 +76,7 @@ def k_fold_split(dataset_path, save_path, k=5):
         ds_yamls.append(dataset_yaml)
         with open(dataset_yaml, 'w') as ds_y:
             yaml.safe_dump({
-                'path': split_dir.as_posix(),
+                'path': str(save_path).split('\\')[-1]+ f'/split_{split}',
                 'train': 'train/images',
                 'val': 'val/images',
                 'names': classes
@@ -145,9 +145,8 @@ def train_test_split(source_images_folder, source_labels_folder, destination_fol
 if __name__ == '__main__':
         
     dataset_path = Path('../calcium_scoring/data/processed')
-    save_path = Path(dataset_path.parent / 'datasets' / f'{5}-Fold_Cross-val')
+    save_path = Path(dataset_path.parent / 'datasets' / 'oversample_split')
     
-    k_fold_split(dataset_path/'bifurcation_only', save_path)
-    
+    k_fold_split(dataset_path/'oversampled_data', save_path)
         
     #train_test_split(images_folder, labels_folder, destination_folder)

@@ -50,7 +50,7 @@ def train_default_kfold_split(model, k_split, data_path, project_name, epoch, sa
     for k in range(k_split):
         print("FOLD NUMBER: ", k)
         dataset_yaml = ds_yamls[k]
-        model.train(data=dataset_yaml,epochs=epoch, project=project_name, save_dir=save_dir)  
+        model.train(data=dataset_yaml,epochs=epoch, imgsz = 512, project=project_name, save_dir=save_dir)  
         results[k] = model.metrics
         print('###########################################################################################\n')
     return results 

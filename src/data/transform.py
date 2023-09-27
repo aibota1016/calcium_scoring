@@ -21,10 +21,10 @@ def clip_values_3d(ct_scan, min_bound=-1000, max_bound=1000):
     return img
 
 
-def clip_values_2d(im, min_bound=-1000, max_bound=1000):
+def clip_values_2d(im, label, min_bound=-1000, max_bound=1000):
     clipped_im = im
     clipped_im = np.clip(clipped_im, min_bound, max_bound).astype(np.float32)
-    return clipped_im
+    return clipped_im, label
 
 
 def random_flip(im, label):
@@ -112,7 +112,7 @@ def resize(im, new_size):
         return np.array(resized_im)
 
 def apply_random_augmentation(im, label):
-    augment_functions = [random_flip, random_rotate, random_crop_around_bbox, random_shift]
+    augment_functions = [random_flip, random_rotate, random_shift, clip_values_2d]
     random_func = utils.random_item(augment_functions)
     return random_func(im, label)
 
