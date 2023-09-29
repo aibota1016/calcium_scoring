@@ -50,8 +50,13 @@ def train_default_kfold_split(model, k_split, data_path, project_name, epoch, sa
     for k in range(k_split):
         print("FOLD NUMBER: ", k)
         dataset_yaml = ds_yamls[k]
-        model.train(data=dataset_yaml,epochs=epoch, imgsz = 512, project=project_name, save_dir=save_dir)  
-        results[k] = model.metrics
+        model.train(
+            data=dataset_yaml,
+            epochs=epoch, 
+            imgsz = 512, 
+            project=project_name, 
+            save_dir=save_dir)  
+        results[k] = model.val()
         print('###########################################################################################\n')
     return results 
 
@@ -94,7 +99,7 @@ if __name__ == '__main__':
     save_dir = os.path.join(project_path, 'logs')
     os.makedirs(save_dir, exist_ok=True)
     
-    data_path = os.path.join(project_path, 'data//datasets//aorta_bifurcation_mix_60data')
+    data_path = os.path.join(project_path, 'data\\datasets\\final_split')
     
     # Load a model
     import torch
@@ -102,5 +107,5 @@ if __name__ == '__main__':
     loaded_model = load_model(model_path)
     assert type(loaded_model) != dict
     
-    train_default_kfold_split(model=loaded_model, k_split=5, data_path=data_path, project_name='experiments\\train_60data', epoch=10, save_dir=save_dir)
+    train_default_kfold_split(model=loaded_model, k_split=5, data_path=data_path, project_name='experiments\\train_60data', epoch=1, save_dir=save_dir)
     

@@ -23,5 +23,5 @@ def check_raw_data(data_root_folder):
 if __name__ == '__main__':
     PROJECT_PATH = os.getcwd()
     assert PROJECT_PATH.split('\\')[-1] == 'calcium_scoring'
-    raw_data_folder = r'E:\Aibota\annotated_data_bii'
+    raw_data_folder = os.path.join(PROJECT_PATH, 'data\\raw\\annotated_data_bii')
     check_raw_data(raw_data_folder)

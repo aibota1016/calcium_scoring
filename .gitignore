@@ -1,7 +1,9 @@
 # ignore all files in directory 
-raw/
-datasets/
-processed/
+final_split/
+final_data/
+oversampled_split/
+oversampled_data/
+annotated_data_bii/
 
 .DS_store
 __pycache__

@@ -1,0 +1,1 @@
+This folder is for storing cleaned and preprocessed data
