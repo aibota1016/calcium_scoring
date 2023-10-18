@@ -1,7 +1,7 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: /home/sanatbyeka/calcium_scoring/data//datasets//final_split/split_3/split_3_dataset.yaml
+data: /home/sanatbyeka/calcium_scoring/data//datasets//final_split/split_4/split_4_dataset.yaml
 epochs: 100
 patience: 50
 batch: 16
@@ -72,7 +72,7 @@ momentum: 0.937
 weight_decay: 0.0005
 warmup_epochs: 3.0
 warmup_momentum: 0.8
-warmup_bias_lr: 0.1
+warmup_bias_lr: 0.0
 box: 7.5
 cls: 0.5
 dfl: 1.5
@@ -90,9 +90,9 @@ shear: 0.0
 perspective: 0.0
 flipud: 0.0
 fliplr: 0.5
-mosaic: 1.0
+mosaic: 0.0
 mixup: 0.0
 copy_paste: 0.0
 cfg: null
 tracker: botsort.yaml
-save_dir: experiments/mix/train2
+save_dir: experiments/mix/train3

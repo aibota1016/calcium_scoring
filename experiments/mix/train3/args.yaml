@@ -1,7 +1,7 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: /home/sanatbyeka/calcium_scoring/data//datasets//final_split/split_4/split_4_dataset.yaml
+data: /home/sanatbyeka/calcium_scoring/data//datasets//final_split/split_5/split_5_dataset.yaml
 epochs: 100
 patience: 50
 batch: 16
@@ -95,4 +95,4 @@ mixup: 0.0
 copy_paste: 0.0
 cfg: null
 tracker: botsort.yaml
-save_dir: experiments/mix/train3
+save_dir: experiments/mix/train4
