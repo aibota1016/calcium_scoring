@@ -73,7 +73,7 @@ def random_crop_around_bbox(im, label):
     center_x, center_y, w, h = label
     x = int(center_x * im_w - crop_size / 2)
     y = int(center_y * im_h - crop_size / 2)
-    cropped_image = cv2.getRectSubPix(im, (crop_size, crop_size), (x + crop_size / 2, y + crop_size / 2))
+    cropped_image = cv2.getRectSubPix(np.float32(im), (crop_size, crop_size), (x + crop_size / 2, y + crop_size / 2))
     cropped_label = [0.5, 0.5, w*(im_w/crop_size), h*(im_h/crop_size)]
     return cropped_image, cropped_label
 
@@ -112,7 +112,7 @@ def resize(im, new_size):
         return np.array(resized_im)
 
 def apply_random_augmentation(im, label):
-    augment_functions = [random_flip, random_rotate, random_shift, clip_values_2d]
+    augment_functions = [random_flip, random_rotate, random_shift, clip_values_2d, random_crop_around_bbox]
     random_func = utils.random_item(augment_functions)
     return random_func(im, label)
 
