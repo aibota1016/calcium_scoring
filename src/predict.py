@@ -21,4 +21,4 @@ def predict(trained_model, ct_path):
         print(result.speed)
     return boxes
 
-        
+

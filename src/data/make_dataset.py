@@ -37,7 +37,7 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
         while 'aug' in test_patient:
             idx += 1
             test_patient = patient_files[idx]
-        shutil.copytree(dataset_path/test_patient, save_path.parent/'test_set'/test_patient, dirs_exist_ok=True)
+        #shutil.copytree(dataset_path/test_patient, dataset_path.parent/'test_set'/test_patient, dirs_exist_ok=True)
         test_patients.append(test_patient)
         for test_im in os.listdir(dataset_path/test_patient/'images'):
             image_files.remove(test_im)
@@ -46,8 +46,9 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
             label_files.remove(test_lbl)
         patient_files.pop(idx)
 
+
     print("Patients data reserved for the test: ", test_patients)
-    print('Number of 2D slices in the test patients: ', count)
+    print('Number of bifurcation slices in the test patients: ', count)
 
     classes = {0 :'bifurcation'}
     cls_idx = list(range(len(classes)))
@@ -71,6 +72,7 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
     for i in labels_df.columns:
         print(f"Number of 2D slices in {classes[i]} class for the k-fold cross val set: ", labels_df[i].sum())
         print(f"Average number of {classes[i]} labels per patient: ", round(labels_df[i].mean()))
+    
 
     print('\n...............................................\n')
     print(f"\nSplitting files into {k} folds... \n")
@@ -111,8 +113,6 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
             }, ds_y)
     
     print("Copying files to each split...")
-
-
     for image, label in tqdm(zip(image_files, label_files), total=len(image_files)):
         for split, k_split in folds_df.loc[image.rsplit('_', 1)[0]].items():
             img_to_path = save_path / split / k_split / 'images'
@@ -124,9 +124,14 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
     folds_df.to_csv(save_path / "kfold_datasplit.csv")
     fold_lbl_distrb.to_csv(save_path / "kfold_label_distribution.csv")
     
+    test_str = ''
+    for patient in test_patients:
+        test_str += patient
+        test_str += " "
+    with open(dataset_path.parent.parent/'raw'/"test_patients.txt", 'w') as f:
+        f.write(f"Test patients: \n {str(test_str)} ")
 
-
-
+    print("Name of test patients saved to: ", dataset_path.parent.parent/'raw'/"test_patients.txt")
 
     """
     temp = dataset_path.parent/'patients_grouped'
@@ -288,18 +293,14 @@ def train_val_split(source_images_folder, source_labels_folder, destination_fold
     
 if __name__ == '__main__':
         
-    dataset_path = Path('../calcium_scoring/data/processed')
+    dataset_path = Path('/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/processed')
     save_path = Path(dataset_path.parent / 'datasets')
     
     #k_fold_split(dataset_path/'bifurcation', save_path/'bifurcation_dataset_split')
-    
     #train_val_split(dataset_path/'bifurcation/images', dataset_path/'bifurcation/labels', save_path/'bifurcation_train_val_split')
     
     
-    patient_split_k_folds(dataset_path/'bifurcation_grp_oversampled', test_num=2, save_path=save_path/'test_oversampled', k=5)
+    patient_split_k_folds(dataset_path/'overampled_grp', test_num=3, save_path=save_path/'test_oversampled', k=5)
     
 
-    dataset_path = Path('/home/sanatbyeka/calcium_scoring/data/processed')
-    save_path = Path(dataset_path.parent / 'datasets')
-
-    #k_fold_split(dataset_path/'bifurcation', save_path/'bifurcation_split2')
+    
