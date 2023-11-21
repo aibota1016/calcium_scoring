@@ -192,15 +192,13 @@ def read_label_txt(label_path):
         with open(label_path, 'r') as f:
             labels_data = f.readlines()
         if len(labels_data) > 0:
-            labels = []  # Initialize an empty list to store multiple labels
             for line in labels_data:
                 label = line.strip().split()
                 if len(label) == 5:
                     class_id, x_center, y_center, w, h = map(float, label)
-                    labels.append([class_id, x_center, y_center, w, h])
+                    return [class_id, x_center, y_center, w, h]
                 else:
                     raise ValueError("Invalid label format in the file.")
-            return labels
         else:
             return ""
     except FileNotFoundError:

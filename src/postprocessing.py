@@ -42,16 +42,13 @@ def get_2Dpred_labels(pred_labels_path):
 """
 
 
-def average_pred_labels(labels_df):
-    labels_df['x'] = labels_df.groupby('patient')['x'].transform('mean')
-    labels_df['y'] = labels_df.groupby('patient')['y'].transform('mean')
-    labels_df['w'] = labels_df.groupby('patient')['w'].transform('mean')
-    labels_df['h'] = labels_df.groupby('patient')['h'].transform('mean')
+def transform_labels(labels_df):
+    #labels_df = avg_labels(labels_df)
+    labels_df = weighted_avg(labels_df)
     
     temp_df = pd.DataFrame()
     temp_df['slice_min'] = labels_df.groupby('patient')['slice'].min()
     temp_df['slice_max'] = labels_df.groupby('patient')['slice'].max()
-    
     # Expand the template dataframe with slices for each patient
     temp_df['slice'] = temp_df.apply(lambda row: list(range(row['slice_min'], row['slice_max'] + 1)), axis=1)
     temp_df = temp_df.explode('slice').drop(['slice_min', 'slice_max'], axis=1)
@@ -60,9 +57,32 @@ def average_pred_labels(labels_df):
     labels_df.to_csv('labels_df.csv')
     return labels_df
 
+def avg_labels(labels_df):
+    labels_df['y'] = labels_df.groupby('patient')['y'].transform('mean')
+    labels_df['y'] = labels_df.groupby('patient')['y'].transform('mean')
+    labels_df['w'] = labels_df.groupby('patient')['w'].transform('mean')
+    labels_df['h'] = labels_df.groupby('patient')['h'].transform('mean')
+    return labels_df
+
+def weighted_avg(labels_df):
+    weighted_avg_x = labels_df.groupby('patient').apply(lambda group: (group['x'] * group['conf_score']).sum() / group['conf_score'].sum())
+    # Update the original DataFrame with the new weighted average x values
+    labels_df['x'] = labels_df['patient'].map(weighted_avg_x)
+
+    weighted_avg_y = labels_df.groupby('patient').apply(lambda group: (group['y'] * group['conf_score']).sum() / group['conf_score'].sum())
+    labels_df['y'] = labels_df['patient'].map(weighted_avg_y)
+
+    weighted_avg_w = labels_df.groupby('patient').apply(lambda group: (group['w'] * group['conf_score']).sum() / group['conf_score'].sum())
+    labels_df['w'] = labels_df['patient'].map(weighted_avg_w)
+
+    weighted_avg_h = labels_df.groupby('patient').apply(lambda group: (group['h'] * group['conf_score']).sum() / group['conf_score'].sum())
+    labels_df['h'] = labels_df['patient'].map(weighted_avg_h)
+
+    return labels_df
+
 
 def map2Dto3D(pred_labels_path, ct_images_path):
-    labels_df = average_pred_labels(get_2Dpred_labels(pred_labels_path))
+    labels_df = transform_labels(get_2Dpred_labels(pred_labels_path))
     patients = labels_df['patient'].unique()
     losses = {}
     data = []
@@ -126,7 +146,7 @@ def calculate_distance(pred_center, true_center):
 
 
 if __name__ == '__main__':
-    path = '/Users/aibotasanatbek/Desktop/val3/predictions.json'
+    path = '/Users/aibotasanatbek/Desktop/val4/predictions.json'
     data_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii'
      
     losses = map2Dto3D(pred_labels_path=path, ct_images_path=data_path)

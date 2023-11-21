@@ -13,7 +13,7 @@ import time
 
 
 
-def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
+def patient_split_k_folds(dataset_path, save_path, k=5):
     """ 
     train_num: number of patients data for test, 
     remaining patients data will be split using k-fold cross validation
@@ -27,46 +27,23 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
         for lbl in os.listdir(dataset_path/patient/'labels'):
             label_files.append(lbl)
     assert len(label_files) == len(image_files)
-    
-    print(f'Reserving {test_num} patient files for the test set...\n')
-    save_path.mkdir(parents=True, exist_ok=True)
-    test_patients, count = [], 0
-    for i in range(test_num):
-        idx = 0
-        test_patient = patient_files[idx]
-        while 'aug' in test_patient:
-            idx += 1
-            test_patient = patient_files[idx]
-        #shutil.copytree(dataset_path/test_patient, dataset_path.parent/'test_set'/test_patient, dirs_exist_ok=True)
-        test_patients.append(test_patient)
-        for test_im in os.listdir(dataset_path/test_patient/'images'):
-            image_files.remove(test_im)
-            count += 1
-        for test_lbl in os.listdir(dataset_path/test_patient/'labels'):
-            label_files.remove(test_lbl)
-        patient_files.pop(idx)
-
-
-    print("Patients data reserved for the test: ", test_patients)
-    print('Number of bifurcation slices in the test patients: ', count)
 
     classes = {0 :'bifurcation'}
     cls_idx = list(range(len(classes)))
     labels_df = pd.DataFrame([], columns=cls_idx, index=patient_files)
     print("\nCounting labels...\n")
     for patient in patient_files:
-        if patient not in test_patients:
-            labels = os.listdir(dataset_path/patient/'labels')
-            lbl_counter = Counter()
-            for label in labels:
-                lines = []
-                with open(os.path.join(dataset_path/patient/'labels', label),'r') as lf:
-                    lines.append(lf.readlines())
-                for line in lines:
-                    for l in line:
-                        if l != '\n':
-                            lbl_counter[int(l.split(' ')[0])] += 1
-                            labels_df.loc[patient] = lbl_counter
+        labels = os.listdir(dataset_path/patient/'labels')
+        lbl_counter = Counter()
+        for label in labels:
+            lines = []
+            with open(os.path.join(dataset_path/patient/'labels', label),'r') as lf:
+                lines.append(lf.readlines())
+            for line in lines:
+                for l in line:
+                    if l != '\n':
+                        lbl_counter[int(l.split(' ')[0])] += 1
+                        labels_df.loc[patient] = lbl_counter
     labels_df = labels_df.fillna(0.0)
     print("Total number of patients for the cross-val: ", len(labels_df))
     for i in labels_df.columns:
@@ -109,6 +86,7 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
                 'path': str(save_path).split('/')[-1]+ f'/{split}',
                 'train': 'train/images',
                 'val': 'val/images',
+                'test':'test_set/images',
                 'names': classes
             }, ds_y)
     
@@ -119,46 +97,12 @@ def patient_split_k_folds(dataset_path, test_num, save_path, k=5):
             lbl_to_path = save_path / split / k_split / 'labels'
             shutil.copy(dataset_path/image.rsplit('_', 1)[0]/'images'/image, img_to_path / image)
             shutil.copy(dataset_path/image.rsplit('_', 1)[0]/'labels'/label, lbl_to_path / label)
+            if not os.path.exists(save_path/split/'test_set'):
+                shutil.copytree(save_path.parent/'test_set', save_path/split/'test_set')
     print("K-Fold split performed successfully")
     
     folds_df.to_csv(save_path / "kfold_datasplit.csv")
     fold_lbl_distrb.to_csv(save_path / "kfold_label_distribution.csv")
-    
-    test_str = ''
-    for patient in test_patients:
-        test_str += patient
-        test_str += " "
-    with open(dataset_path.parent.parent/'raw'/"test_patients.txt", 'w') as f:
-        f.write(f"Test patients: \n {str(test_str)} ")
-
-    print("Name of test patients saved to: ", dataset_path.parent.parent/'raw'/"test_patients.txt")
-
-    """
-    temp = dataset_path.parent/'patients_grouped'
-    temp.mkdir(parents=True, exist_ok=True)
-    Path(temp/patient).mkdir(parents=True, exist_ok=True)
-    print("Grouping slices from same patients...\n")
-    for i in range(1, len(images)):
-        current = str(images[i]).split('_')[0]
-        if current != patient:
-            patient = current
-            patient_files.append(patient)
-        Path(temp/patient/'images').mkdir(parents=True, exist_ok=True)
-        Path(temp/patient/'labels').mkdir(parents=True, exist_ok=True)
-        if not os.path.exists(temp/patient/'images'/images[0]):
-            shutil.copy(os.path.join(dataset_path/'images', images[0]), temp/patient/'images'/images[0])
-            shutil.copy(os.path.join(dataset_path/'labels', labels[0]), temp/patient/'labels'/labels[0])
-        shutil.copy(os.path.join(dataset_path/'images', images[i]), temp/patient/'images'/images[i])
-        shutil.copy(os.path.join(dataset_path/'labels', labels[i]), temp/patient/'labels'/labels[i])
-    yaml_file = temp/'dataset.yaml'
-    shutil.copy(os.path.join(dataset_path, 'dataset.yaml'), yaml_file)
-    assert os.path.exists(yaml_file), f"The datasets folder {temp} do not contain the dataset.yaml file"
-    with open(yaml_file, 'r', encoding="utf8") as y:
-        classes = yaml.safe_load(y)['names']
-
-    """
-    
-
 
 
 
@@ -300,7 +244,11 @@ if __name__ == '__main__':
     #train_val_split(dataset_path/'bifurcation/images', dataset_path/'bifurcation/labels', save_path/'bifurcation_train_val_split')
     
     
-    patient_split_k_folds(dataset_path/'overampled_grp', test_num=3, save_path=save_path/'test_oversampled', k=5)
+    patient_split_k_folds(dataset_path/'bifurcation', save_path=save_path/'train_val', k=5)
+
+
+
+    
     
 
     
