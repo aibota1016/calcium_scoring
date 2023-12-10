@@ -86,16 +86,15 @@ def plot_bboxes_single_image(im_path, label_path, title=""):
   """
   im_array = utils.image_to_numpy(im_path)
   label = utils.read_label_txt(label_path)
-  
+  print(label)
   plt.imshow(im_array, cmap=plt.cm.gray)
   if title != "":
     plt.title(title)
-  for line in label:
-    [x, y, w, h] = utils.denormalize_bbox(line[1:], im_array.shape)
-    x_min = x - w / 2
-    y_min = y - h / 2
-    box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
-    plt.gca().add_patch(box)
+  [x, y, w, h] = utils.denormalize_bbox(label[1:], im_array.shape)
+  x_min = x - w / 2
+  y_min = y - h / 2
+  box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
+  plt.gca().add_patch(box)
   plt.colorbar(label='Signal intensity')
   plt.show()
 
@@ -125,13 +124,12 @@ def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, 
         img = utils.image_to_numpy(image_file)
         ax.imshow(img, cmap='gray')
         # Draw bounding box
-        for line in label:
-          [x, y, w, h] = utils.denormalize_bbox(line[1:], img.shape)
-          x_min = x - w / 2
-          y_min = y - h / 2
-          box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
-          ax.add_patch(box)
-        slice_idx = (image_file.split('\\')[-1]).split('.')[0]
+        [x, y, w, h] = utils.denormalize_bbox(label[1:], img.shape)
+        x_min = x - w / 2
+        y_min = y - h / 2
+        box = plt.Rectangle((x_min, y_min), w, h, fill=False, edgecolor='red', linewidth=1)
+        ax.add_patch(box)
+        slice_idx = (image_file.split('/')[-1]).split('.')[0]
         ax.set_title(slice_idx)
         ax.axis('off')
         j = j + 1
@@ -144,10 +142,30 @@ def plot_imgs_bboxes(images_folder, labels_folder, title="", columns=5, rows=3, 
   plt.show()
 
 
+def display_ct_planes(ct_data):
+    # Display CT images in axial, coronal, and sagittal planes side by side
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    # Axial plane
+    axes[0].imshow(ct_data[ct_data.shape[0] // 2, :, :], cmap='gray', origin='lower')
+    axes[0].set_title("Axial Plane")
+    axes[0].axis('off')
+    # Coronal plane
+    axes[1].imshow(ct_data[:, ct_data.shape[1] // 2, :], cmap='gray', origin='lower')
+    axes[1].set_title("Coronal Plane")
+    axes[1].axis('off')
+    # Sagittal plane
+    axes[2].imshow(ct_data[:, :, ct_data.shape[2] // 2].T, cmap='gray', origin='lower')
+    axes[2].set_title("Sagittal Plane")
+    axes[2].axis('off')
+    plt.show()
 
 
 if __name__ == '__main__':
-  im_path = r'E:\Aibota\calcium_scoring\data\processed\images\PD158_35.png'
-  label = r'E:\Aibota\calcium_scoring\data\processed\labels\PD158_35.txt'
-  plot_bboxes_single_image(im_path, label)
-  plot_imgs_bboxes(r'E:\Aibota\calcium_scoring\data\processed\images', r'E:\Aibota\calcium_scoring\data\processed\labels', columns=7, rows=4, save_path=r'E:\Aibota\calcium_scoring\src\visualizations\aorta_bbox.png')
+  im_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_3/train/images/PD001_31_aug0.png'
+  label = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_3/train/labels/PD001_31_aug0_0.txt'
+  #plot_bboxes_single_image(im_path, label)
+  #plot_imgs_bboxes(r'E:\Aibota\calcium_scoring\data\processed\images', r'E:\Aibota\calcium_scoring\data\processed\labels', columns=7, rows=4, save_path=r'E:\Aibota\calcium_scoring\src\visualizations\aorta_bbox.png')
+
+  images_folder = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_2/train/images'
+  labels_folder = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_2/train/labels'
+  plot_imgs_bboxes(images_folder, labels_folder, title="", columns=8, rows=4, save_path=None)

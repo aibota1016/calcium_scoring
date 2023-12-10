@@ -33,6 +33,7 @@ def read_nifti_nibabel(ct_path):
     print('final orientation:', nib.orientations.ornt2axcodes(nib.orientations.io_orientation(img_orient.affine)))
     #viz.plot_scan_slices(ct_nib.get_fdata())
     print("affine: ", img_orient.affine)
+    return ct_nib.get_fdata()
     
         
 def extract_aorta_mask(segmentation_path, corresponding_ct_path, save_path):
@@ -119,11 +120,15 @@ def get_idxs_segment(mask):
         
 
    
-def fix_direction(image_path):
+def fix_direction(image_path, only_img=True):
     """This function will flip the image axis to right directioin [1,1,1] """
     itk_image = sitk.ReadImage(image_path)
+    spacing = np.array(list(itk_image.GetSpacing()))
+    origin = np.array(list(itk_image.GetOrigin()))
     direction_matrix = np.array(itk_image.GetDirection()).reshape((3, 3))
+    direction = np.array(list(itk_image.GetDirection())).reshape((3,3))
     flip_axes = [i for i, val in enumerate(np.diag(direction_matrix)) if val < 0]
+    print("flip_axes: ", flip_axes)
     if flip_axes:
         direction_matrix[flip_axes, :] = -direction_matrix[flip_axes, :]
         itk_image.SetDirection(direction_matrix.flatten())
@@ -132,6 +137,8 @@ def fix_direction(image_path):
         itk_image = sitk.GetImageFromArray(data_array)
         itk_image.SetDirection(direction_matrix.flatten())
     arr_im = sitk.GetArrayFromImage(itk_image)
+    if not only_img:
+            return arr_im, spacing, origin, direction
     return arr_im
 
 
@@ -155,6 +162,24 @@ def get_yololabel_from_3Dmarkup(json_path, ct_path):
     idxs = get_slice_idxs_with_bbox(z, l, spacing[2])
     label = normalize_bbox([x,y,w,h], [im_w, im_h])
     return label, idxs
+
+def get_3Dcoor_from_markup(json_path, ct_path):
+    ct_im, spacing, origin, direction = read_nifti_image(ct_path, only_img=False)
+    #flip_axes = [i for i, val in enumerate(np.diag(direction)) if val < 0]
+    flip_axes = [0]
+    center, _ = read_json(json_path)
+    print("original center:", center)
+    x = (center[0] - origin[0]) / spacing[0]
+    y = (origin[1] - center[1]) / spacing[1]
+    z = (center[2] - origin[2]) / spacing[2]
+    print("normalized center:", [x,y,z])
+    im_h, im_w = ct_im.shape[1:]
+    if 0 in flip_axes:
+        x = im_w/2 - x + im_w/2
+    if 1 in flip_axes:
+        y = im_h/2 - y + im_h/2
+    print("flipped center:", [x,y,z])
+    return np.array([z, x, y])
 
 
 def get_slice_idxs_with_bbox(z, l, spacing_z):
@@ -250,28 +275,10 @@ def load_model(model_path):
 if __name__ == '__main__':
     
     
-    root_data_folder = r'E:\Aibota\annotated_data_bii'
-    save_extracted_aorta_masks(root_data_folder)
-    
-    import shutil
-    #source = r'E:\Aibota\aorta_seg_inference'
-    #dest = r'E:\Aibota\data_part2'
-    #for folder in os.listdir(source):
-    #    file_path = os.path.join(source, folder, "og_ct", "og_ct_seg.nii.gz")
-    #    shutil.copy(file_path, os.path.join(dest, folder))
-    #    print(f"File copied from {file_path} to {os.path.join(dest, folder)}")
-    
-    
-    """ 
-    source = r'E:\interim'
-    dest = r'E:\Aibota\annotated_data_bii'
-    for PD in os.listdir(source):
-        pd_path = os.path.join(source, PD)
-        for date_folder in os.listdir(pd_path):
-            for filename in os.listdir(os.path.join(pd_path, date_folder, 'NCCT')):
-                if filename.endswith('.xls'):
-                    if filename.split('.')[0].split('_')[-1] == 'LM' and os.path.exists(os.path.join(dest, PD, filename)) is False and os.path.exists(os.path.join(dest, PD)):
-                        file_path = os.path.join(pd_path, date_folder, 'NCCT', filename)
-                        shutil.copy(file_path, os.path.join(dest, PD))
-                        print(f"File copied from {file_path} to {os.path.join(dest, PD)}")
-    """
+    #root_data_folder = r'E:\Aibota\annotated_data_bii'
+    #save_extracted_aorta_masks(root_data_folder)
+
+    lbl = "/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_3/train/labels/PD001_31_aug0_0.txt"
+
+    print(read_label_txt(lbl))
+    print('0 ' + ' '.join(map(str, read_label_txt(lbl)[1:]))) 

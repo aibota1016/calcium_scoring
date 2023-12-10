@@ -22,8 +22,7 @@ def clip_values_3d(ct_scan, min_bound=-1000, max_bound=1000):
 
 
 def clip_values_2d(im, label, min_bound=-1000, max_bound=1000):
-    clipped_im = im
-    clipped_im = np.clip(clipped_im, min_bound, max_bound).astype(np.float32)
+    clipped_im = np.clip(im, min_bound, max_bound).astype(np.float32)
     return clipped_im, label
 
 
@@ -53,7 +52,7 @@ def random_rotate(im, label):
     Rotates the image and its label by 90degrees * factor
         factor: Number of CCW rotations. Must be in set {0, 1, 2, 3}.
     """
-    factors = [0, 1, 2, 3]
+    factors = [1, 2, 3]
     random_k = utils.random_item(factors)
     x_center, y_center, w, h = label
     if random_k == 1: # 90 degrees rotation
@@ -68,8 +67,9 @@ def random_rotate(im, label):
 def random_crop_around_bbox(im, label):
     im_h, im_w = im.shape
     max_size_crop =  min(im_h, im_w)
-    min_size = int(max_size_crop * 0.6) 
-    crop_size = utils.random_item([s for s in range(min_size, max_size_crop)])
+    min_size = int(max_size_crop * 0.8) 
+    assert max_size_crop > min_size
+    crop_size = utils.random_item([s for s in range(min_size, max_size_crop-5)])
     center_x, center_y, w, h = label
     x = int(center_x * im_w - crop_size / 2)
     y = int(center_y * im_h - crop_size / 2)
@@ -88,8 +88,8 @@ def random_shift(im, label):
     x_center, y_center, w, h = label
     im_h, im_w = im.shape
     shift_type = utils.random_item(['horizontal', 'vertical'])
-    shift_range = int(min(im_w, im_h)*0.3)
-    shift_amount = utils.random_item([x for x in range(shift_range)])
+    shift_range = int(min(im_w, im_h)*0.2)
+    shift_amount = utils.random_item([x for x in range(20, shift_range)])
     if shift_type == 'horizontal': 
         shift_percentage = shift_amount / im_w
         axis = 1
@@ -111,16 +111,50 @@ def resize(im, new_size):
         resized_im = cv2.resize(im, (new_size, new_size), interpolation=cv2.INTER_LINEAR)
         return np.array(resized_im)
 
+
+
+def exposure(im, label):
+    """Increases the exposure of the image by a random factor"""
+    exposure_factor = np.random.uniform(-0.3, 0.3)
+    # Adjust the exposure using the exposure factor
+    adjusted_image = cv2.convertScaleAbs(im, alpha=1 + exposure_factor, beta=0)
+    return adjusted_image, label
+
+def brigtness(im, label):
+    "Increases the brightness of the image randomly between -40 to +40"
+    brightness_factor = np.random.uniform(-0.4, 0.4)
+    # Adjust the brightness using the brightness factor
+    adjusted_image = cv2.convertScaleAbs(im, alpha=1, beta=brightness_factor * 255)
+    return adjusted_image, label
+
+
+def add_random_noise(im, label):
+    """Adds Gaussian noise to Up to 10% of pixels of the image"""
+    noise_percentage = np.random.uniform(0, 5)
+    height, width = im.shape
+    # Calculate the number of pixels to add noise to
+    num_pixels_to_noise = int((noise_percentage / 100) * (height * width))
+    # Generate random pixel coordinates to add noise
+    noise_pixels = np.random.randint(0, height, size=(num_pixels_to_noise, 2))
+    # Add random noise to the selected pixels
+    adjusted_image = im.copy()
+    for pixel in noise_pixels:
+        x, y = pixel
+        adjusted_image[x, y] = np.random.randint(0, 256)
+    return adjusted_image, label
+
+
 def apply_random_augmentation(im, label):
-    augment_functions = [random_flip, random_rotate, random_shift, clip_values_2d, random_crop_around_bbox]
+    augment_functions = [random_flip, random_rotate, random_shift, random_crop_around_bbox, exposure, brigtness, add_random_noise]
     random_func = utils.random_item(augment_functions)
     return random_func(im, label)
 
+
 if __name__ == '__main__':
-    test_im_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\images\1_52.png'
-    test_label_path = r'C:\Users\sanatbyeka\Desktop\calcium_scoring\data\processed\bifurcation_point\labels\1_52.txt'
+    test_im_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/processed/bifurcation/PD001/images/PD001_31.png'
+    test_label_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/processed/bifurcation/PD001/labels/PD001_31.txt'
     test_im = utils.image_to_numpy(test_im_path)
     test_label = utils.read_label_txt(test_label_path)
-
-    new_im, new_label = apply_random_augmentation(test_im, test_label)
-    viz.plot_augment_results(test_im, test_label, new_im, new_label)
+    print(test_label[1:])
+    new_im, new_label = add_random_noise(test_im, test_label[1:])
+    viz.plot_augment_results(test_im, test_label[1:], new_im, new_label)

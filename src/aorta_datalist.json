@@ -1,0 +1,570 @@
+
+
+
+
+{
+    "testing": [
+        {
+            "image": "PD247/og_ct.nii"
+        },
+        {
+            "image": "PD230/og_ct.nii"
+        },
+        {
+            "image": "PD049/og_ct.nii"
+        },
+        {
+            "image": "PD133/og_ct.nii"
+        },
+        {
+            "image": "PD144/og_ct.nii"
+        },
+        {
+            "image": "PD043/og_ct.nii"
+        },
+        {
+            "image": "PD034/og_ct.nii"
+        },
+        {
+            "image": "PD139/og_ct.nii"
+        },
+        {
+            "image": "PD305/og_ct.nii"
+        },
+        {
+            "image": "PD202/og_ct.nii"
+        },
+        {
+            "image": "PD275/og_ct.nii"
+        },
+        {
+            "image": "PD198/og_ct.nii"
+        },
+        {
+            "image": "PD176/og_ct.nii"
+        },
+        {
+            "image": "PD101/og_ct.nii"
+        },
+        {
+            "image": "PD095/og_ct.nii"
+        },
+        {
+            "image": "PD192/og_ct.nii"
+        },
+        {
+            "image": "PD006/og_ct.nii"
+        },
+        {
+            "image": "PD071/og_ct.nii"
+        },
+        {
+            "image": "PD254/og_ct.nii"
+        },
+        {
+            "image": "PD223/og_ct.nii"
+        }
+    ],
+    "training": [
+        {
+            "image": "PD188/og_ct.nii",
+            "label": "PD188/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD061/og_ct.nii",
+            "label": "PD061/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD182/og_ct.nii",
+            "label": "PD182/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD016/og_ct.nii",
+            "label": "PD016/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD218/og_ct.nii",
+            "label": "PD218/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD265/og_ct.nii",
+            "label": "PD265/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD212/og_ct.nii",
+            "label": "PD212/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD268/og_ct.nii",
+            "label": "PD268/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD215/og_ct.nii",
+            "label": "PD215/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD161/og_ct.nii",
+            "label": "PD161/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD082/og_ct.nii",
+            "label": "PD082/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD116/og_ct.nii",
+            "label": "PD116/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD011/og_ct.nii",
+            "label": "PD011/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD185/og_ct.nii",
+            "label": "PD185/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD088/og_ct.nii",
+            "label": "PD088/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD250/og_ct.nii",
+            "label": "PD250/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD227/og_ct.nii",
+            "label": "PD227/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD029/og_ct.nii",
+            "label": "PD029/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD124/og_ct.nii",
+            "label": "PD124/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD153/og_ct.nii",
+            "label": "PD153/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD054/og_ct.nii",
+            "label": "PD054/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD023/og_ct.nii",
+            "label": "PD023/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD159/og_ct.nii",
+            "label": "PD159/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD206/og_ct.nii",
+            "label": "PD206/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD295/og_ct.nii",
+            "label": "PD295/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD178/og_ct.nii",
+            "label": "PD178/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD002/og_ct.nii",
+            "label": "PD002/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD196/og_ct.nii",
+            "label": "PD196/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD075/og_ct.nii",
+            "label": "PD075/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD172/og_ct.nii",
+            "label": "PD172/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD091/og_ct.nii",
+            "label": "PD091/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD105/og_ct.nii",
+            "label": "PD105/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD008/og_ct.nii",
+            "label": "PD008/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD243/og_ct.nii",
+            "label": "PD243/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD234/og_ct.nii",
+            "label": "PD234/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD249/og_ct.nii",
+            "label": "PD249/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD047/og_ct.nii",
+            "label": "PD047/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD030/og_ct.nii",
+            "label": "PD030/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD137/og_ct.nii",
+            "label": "PD137/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD140/og_ct.nii",
+            "label": "PD140/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD099/og_ct.nii",
+            "label": "PD099/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD194/og_ct.nii",
+            "label": "PD194/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD077/og_ct.nii",
+            "label": "PD077/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD170/og_ct.nii",
+            "label": "PD170/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD093/og_ct.nii",
+            "label": "PD093/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD107/og_ct.nii",
+            "label": "PD107/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD204/og_ct.nii",
+            "label": "PD204/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD309/og_ct.nii",
+            "label": "PD309/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD279/og_ct.nii",
+            "label": "PD279/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD297/og_ct.nii",
+            "label": "PD297/aorta_mask.nii",
+            "fold": 0
+        },
+        {
+            "image": "PD148/og_ct.nii",
+            "label": "PD148/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD228/og_ct.nii",
+            "label": "PD228/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD222/og_ct.nii",
+            "label": "PD222/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD156/og_ct.nii",
+            "label": "PD156/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD067/og_ct.nii",
+            "label": "PD067/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD010/og_ct.nii",
+            "label": "PD010/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD184/og_ct.nii",
+            "label": "PD184/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD089/og_ct.nii",
+            "label": "PD089/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD083/og_ct.nii",
+            "label": "PD083/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD117/og_ct.nii",
+            "label": "PD117/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD160/og_ct.nii",
+            "label": "PD160/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD226/og_ct.nii",
+            "label": "PD226/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD251/og_ct.nii",
+            "label": "PD251/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD022/og_ct.nii",
+            "label": "PD022/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD055/og_ct.nii",
+            "label": "PD055/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD158/og_ct.nii",
+            "label": "PD158/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD028/og_ct.nii",
+            "label": "PD028/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD152/og_ct.nii",
+            "label": "PD152/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD125/og_ct.nii",
+            "label": "PD125/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD128/og_ct.nii",
+            "label": "PD128/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD052/og_ct.nii",
+            "label": "PD052/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD025/og_ct.nii",
+            "label": "PD025/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD155/og_ct.nii",
+            "label": "PD155/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD058/og_ct.nii",
+            "label": "PD058/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD221/og_ct.nii",
+            "label": "PD221/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD183/og_ct.nii",
+            "label": "PD183/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD017/og_ct.nii",
+            "label": "PD017/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD060/og_ct.nii",
+            "label": "PD060/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD110/og_ct.nii",
+            "label": "PD110/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD084/og_ct.nii",
+            "label": "PD084/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD189/og_ct.nii",
+            "label": "PD189/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD213/og_ct.nii",
+            "label": "PD213/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD264/og_ct.nii",
+            "label": "PD264/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD219/og_ct.nii",
+            "label": "PD219/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD131/og_ct.nii",
+            "label": "PD131/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD146/og_ct.nii",
+            "label": "PD146/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD238/og_ct.nii",
+            "label": "PD238/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD245/og_ct.nii",
+            "label": "PD245/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD232/og_ct.nii",
+            "label": "PD232/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD079/og_ct.nii",
+            "label": "PD079/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD174/og_ct.nii",
+            "label": "PD174/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD103/og_ct.nii",
+            "label": "PD103/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD097/og_ct.nii",
+            "label": "PD097/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD190/og_ct.nii",
+            "label": "PD190/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD004/og_ct.nii",
+            "label": "PD004/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD073/og_ct.nii",
+            "label": "PD073/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD109/og_ct.nii",
+            "label": "PD109/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD307/og_ct.nii",
+            "label": "PD307/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD293/og_ct.nii",
+            "label": "PD293/aorta_mask.nii",
+            "fold": 1
+        },
+        {
+            "image": "PD200/og_ct.nii",
+            "label": "PD200/aorta_mask.nii",
+            "fold": 1
+        }
+    ]
+}

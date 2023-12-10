@@ -1,12 +1,9 @@
 
 
 import os
-import yaml
 from pathlib import Path
 from ultralytics import YOLO
 from ultralytics import settings
-from ultralytics.engine.model import Model
-from utils import load_model
 from sahi.utils.yolov8 import download_yolov8s_model
 from sahi import AutoDetectionModel
 
@@ -72,18 +69,41 @@ if __name__ == '__main__':
 
 
     data_path = os.path.join(project_path, 'data/datasets/bifurcation_dataset_split')
-    for i in range(5):
-        model = YOLO(f'model{i}/yolov8n.pt')
     #train_default_kfold_split(model=model_path, k_split=5, data_path=data_path, project_name='experiments/bifurcation', epoch=300)
 
 
 
-    # Train using the best model
-    #best_model_path = "/home/sanatbyeka/calcium_scoring/src/experiments/mix/train5/weights/best.pt"
-    #best_model = YOLO(best_model_path)
-    #oversampled_data_path = os.path.join(project_path, 'data//datasets//oversample_split')
-    #train_default_kfold_split(model=best_model, k_split=5, data_path=oversampled_data_path, project_name='experiments/oversampled', epoch=50, save_dir=save_dir)
-    
+    project_path = "/Users/aibotasanatbek/Documents/projects/calcium_scoring"
+    data_path = os.path.join(project_path, 'data/datasets/train_val')
+    dataset_yaml = os.path.join(data_path, 'split_5/split_5_dataset.yaml')
+
+    model = YOLO('yolov8n.pt')
 
     
-        
+    """ 
+    lr0: 0.01298
+lrf: 0.0125
+momentum: 0.98
+weight_decay: 0.00062
+warmup_epochs: 2.8244
+warmup_momentum: 0.63642
+box: 5.81596
+cls: 0.69746
+dfl: 1.44072
+hsv_h: 0.01267
+hsv_s: 0.55956
+hsv_v: 0.3003
+degrees: 0.0
+translate: 0.07682
+scale: 0.36183
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.20583
+mosaic: 0.80822
+mixup: 0.0
+copy_paste: 0.0
+    """
+    model.train(data=dataset_yaml, epochs=5, single_cls=True, imgsz=512, project='experiments/final', mosaic=0, patience=0, save_json=True)
+
+    

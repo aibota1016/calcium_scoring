@@ -238,6 +238,7 @@ def train_val_split(source_images_folder, source_labels_folder, destination_fold
 if __name__ == '__main__':
         
     dataset_path = Path('/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/processed')
+
     save_path = Path(dataset_path.parent / 'datasets')
     
     #k_fold_split(dataset_path/'bifurcation', save_path/'bifurcation_dataset_split')
