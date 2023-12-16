@@ -5,7 +5,8 @@ from pathlib import Path
 import json
 import os
 import pandas as pd
-from postprocessing import map2Dto3D_single_patient, write_to_json
+from postprocessing import map2Dto3D_single_patient, write_to_json, get_labels_df_txt, detect_LM_calcium, calculate_distance
+import shutil
 
 
 
@@ -26,47 +27,49 @@ def predict(trained_model, ct_path, save_path='/Users/aibotasanatbek/Documents/p
     preprocess_inference(ct_path, save_path)
     model = YOLO(trained_model)
     model(save_path, imgsz=512, save_txt=True, save_conf=True, save=True, project='predictions', iou=0.4)
+    shutil.rmtree(save_path)
+
+    
+    
+
+
+def process_output(image_path, 
+                   template_json='/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD003/bifurcation.json', 
+                   output_folder='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict',
+                   true_center=None):
+    pred_labels_df, images = get_labels_df_txt(output_folder)
+    pred_labels = [pred_labels_df['x'][0], pred_labels_df['y'][0], pred_labels_df['w'][0], pred_labels_df['h'][0]]
+    idxs = list(pred_labels_df['slice'])
+    pred_center, pred_size = map2Dto3D_single_patient(image_path, pred_labels, idxs)
+    write_to_json(template_json, pred_center, pred_size, out_path=os.path.join(output_folder, 'pred.json'))
+    if true_center is not None:
+        dist = calculate_distance(pred_center, true_center)
+        return dist
+    return images
 
 
 
-#TODO: change the output folder to get the latest predict folder
-#TODO: change the upload folder in the app.py to get the user uploaded file path
-#TODO: change the app.py to optionally display results according to the checkboxes
-#TODO: clear the temp folder after the prediction is done
 
-def process_output(sample_json='/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD002/bifurcation.json', output_folder='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict'):
-    labels_folder = Path(output_folder) / 'labels'
-    labels = [x for x in labels_folder.iterdir() if x.suffix == '.txt']
-    if len(labels) == 0:
-        print('No predictions found')
-    else:
-        data, images = [], []
-        for label in labels:
-            label = str(label)
-            images.append(output_folder + "/" + label.split("/")[-1].split('.')[0]+'.png')
-            patient_name = label.split('/')[-1].split('_')[0]
-            slice_num = label.split('_')[-1].split('.')[0]
-            with open(label, 'r') as f:
-                labels_data = f.readlines()
-            label = labels_data[0].strip().split()
-            class_id, x, y, w, h, conf = map(float, label)
-            x,y,w,h = utils.denormalize_bbox([x,y,w,h], [512, 512])
-            data.append([patient_name, int(slice_num), x, y, w, h, conf])
-        pred_labels_df = pd.DataFrame(data, columns=['patient', 'slice', 'x', 'y', 'w', 'h', 'conf_score']).sort_values(by='patient', ignore_index=True)
+#TODO: integrate aorta segmentation model
+def test_method(model_path, data_path, output_folder):
+    dist, calcification = {}, {}
+    pred_path = os.path.join(output_folder, 'pred.json')
+    for patient_folder in os.listdir(data_path):
+        if os.path.isdir(os.path.join(data_path, patient_folder)):
+            image_path = os.path.join(data_path, patient_folder, 'og_ct.nii')
+            aorta_filepath = os.path.join(data_path, patient_folder, 'aorta_mask.nii')
+            true_center, true_size = utils.read_json(os.path.join(data_path, patient_folder, 'bifurcation.json'))
+            predict(trained_model=model_path, ct_path=image_path)
+            patient_dist = process_output(image_path, output_folder=output_folder, true_center=true_center)
+            dist[patient_folder] = patient_dist
+            bifurcation = utils.get_3Dcoor_from_markup(pred_path, image_path)
+            connected_points = detect_LM_calcium(image_path, aorta_filepath, bifurcation)
+            if len(connected_points) > 0:
+                calcification[patient_folder] = len(connected_points)
+            shutil.rmtree(output_folder)
+    return dist, calcification
 
-        patients = pred_labels_df['patient'].unique()
-        data = []
-        for patient in patients:
-            x_pred = list(pred_labels_df[pred_labels_df['patient'] == patient]['x'])[0]
-            y_pred = list(pred_labels_df[pred_labels_df['patient'] == patient]['y'])[0]
-            w_pred = list(pred_labels_df[pred_labels_df['patient'] == patient]['w'])[0]
-            h_pred = list(pred_labels_df[pred_labels_df['patient'] == patient]['h'])[0]
-            pred_labels = [x_pred, y_pred, w_pred, h_pred]
-            idxs = list(pred_labels_df[pred_labels_df['patient'] == patient]['slice'])
-            ct_images_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii'
-            pred_center, pred_size = map2Dto3D_single_patient(ct_images_path, 'PD002', pred_labels, idxs)
-            write_to_json(sample_json, pred_center, pred_size, out_path=os.path.join(output_folder, 'pred.json'))
-        return images
+
 
     
 
@@ -74,8 +77,28 @@ def process_output(sample_json='/Users/aibotasanatbek/Documents/projects/calcium
 
 if __name__ == '__main__':
     model_path = '/Users/aibotasanatbek/Desktop/FYP2/experiments/final2/final_tuned/train/weights/best.pt'
-    im_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD002/og_ct.nii'
+    #im_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD002/og_ct.nii'
     #predict(trained_model=model_path, ct_path=im_path)
-    images = process_output()
+    #image_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/og_ct.nii'
+    #images = process_output(image_path)
+
+
+    model_path ='/Users/aibotasanatbek/Desktop/FYP2/experiments/final2/final_tuned/train/weights/best.pt'
+    #data_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii'
+    data_path = '/Users/aibotasanatbek/Desktop/data'
+    output_folder='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict'
+
+    dist, calcification = test_method(model_path, data_path, output_folder=output_folder)
+    print(dist)
+    print("len(dist): ", len(dist))
+    average = sum(dist.values()) / len(dist)
+    print("Average distance: ", average)
+
+    print("Patients with the LM calcification: ")
+    print(calcification)
+    print("Number of patients with LM calcification: ", len(calcification))
+
+
+
 
 

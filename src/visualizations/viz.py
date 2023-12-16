@@ -24,10 +24,11 @@ def plot_scan_slices(ct_scan, n=5, window=500, level=100):
     plt.show()
 
 
-def plot_single_slice(slice):
+def plot_single_slice(slice, title=""):
   """ plots mid slice of a CT scan """
   plt.imshow(slice, cmap='gray')
   plt.colorbar(label='Signal intensity')
+  plt.title(title)
   plt.show() 
   
 

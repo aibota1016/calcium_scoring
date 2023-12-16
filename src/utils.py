@@ -128,7 +128,7 @@ def fix_direction(image_path, only_img=True):
     direction_matrix = np.array(itk_image.GetDirection()).reshape((3, 3))
     direction = np.array(list(itk_image.GetDirection())).reshape((3,3))
     flip_axes = [i for i, val in enumerate(np.diag(direction_matrix)) if val < 0]
-    print("flip_axes: ", flip_axes)
+    #print("flip_axes: ", flip_axes)
     if flip_axes:
         direction_matrix[flip_axes, :] = -direction_matrix[flip_axes, :]
         itk_image.SetDirection(direction_matrix.flatten())
@@ -163,23 +163,23 @@ def get_yololabel_from_3Dmarkup(json_path, ct_path):
     label = normalize_bbox([x,y,w,h], [im_w, im_h])
     return label, idxs
 
+
 def get_3Dcoor_from_markup(json_path, ct_path):
     ct_im, spacing, origin, direction = read_nifti_image(ct_path, only_img=False)
-    #flip_axes = [i for i, val in enumerate(np.diag(direction)) if val < 0]
-    flip_axes = [0]
+    flip_axes = [i for i, val in enumerate(np.diag(direction)) if val < 0]
     center, _ = read_json(json_path)
-    print("original center:", center)
+    #print("original center:", center)
     x = (center[0] - origin[0]) / spacing[0]
     y = (origin[1] - center[1]) / spacing[1]
     z = (center[2] - origin[2]) / spacing[2]
-    print("normalized center:", [x,y,z])
+    #print("normalized center:", [x,y,z])
     im_h, im_w = ct_im.shape[1:]
     if 0 in flip_axes:
         x = im_w/2 - x + im_w/2
     if 1 in flip_axes:
         y = im_h/2 - y + im_h/2
-    print("flipped center:", [x,y,z])
-    return np.array([z, x, y])
+    #print("flipped center:", [x,y,z])
+    return np.array([z, y, x])
 
 
 def get_slice_idxs_with_bbox(z, l, spacing_z):

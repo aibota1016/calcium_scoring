@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 
-def get_2Dpred_labels(json_path):
+def get_labels_df_json(json_path):
     if os.path.exists(json_path):
         data = []
         with open(json_path) as f:
@@ -22,11 +22,32 @@ def get_2Dpred_labels(json_path):
                 conf_score = label['score']
                 data.append([patient_name, int(slice_num), x, y, w, h, conf_score])
             pred_labels_df = pd.DataFrame(data, columns=['patient', 'slice', 'x', 'y', 'w', 'h', 'conf_score']).sort_values(by='patient', ignore_index=True)
-            pred_labels_df = pred_labels_df[pred_labels_df['conf_score']>0.85]
+            pred_labels_df = pred_labels_df[pred_labels_df['conf_score']>0.70]
             return pred_labels_df
             #print(pd.DataFrame(label_json).sort_values(by='image_id').drop('category_id', axis=1))
     else:
         print(f"The file '{json_path}' does not exist.")
+
+
+def get_labels_df_txt(output_folder):
+    labels_folder = Path(output_folder) / 'labels'
+    labels = [x for x in labels_folder.iterdir() if x.suffix == '.txt']
+    data, images = [], []
+    for label in labels:
+        label = str(label)
+        images.append(output_folder + "/" + label.split("/")[-1].split('.')[0]+'.png')
+        patient_name = 'pred'
+        slice_num = label.split('_')[-1].split('.')[0]
+        with open(label, 'r') as f:
+            labels_data = f.readlines()
+        label = labels_data[0].strip().split()
+        class_id, x, y, w, h, conf = map(float, label)
+        x,y,w,h = utils.denormalize_bbox([x,y,w,h], [512, 512])
+        data.append([patient_name, int(slice_num), x, y, w, h, conf])
+    pred_labels_df = pd.DataFrame(data, columns=['patient', 'slice', 'x', 'y', 'w', 'h', 'conf_score']).sort_values(by='patient', ignore_index=True)
+    pred_labels_df = pred_labels_df[pred_labels_df['conf_score']>0.70]
+    pred_labels_df = transform_labels(pred_labels_df)
+    return pred_labels_df, images
 
 
 
@@ -43,7 +64,7 @@ def transform_labels(labels_df):
     temp_df = temp_df.explode('slice').drop(['slice_min', 'slice_max'], axis=1)
     # Merge the template dataframe with the original dataframe and fill missing values
     labels_df = pd.merge(temp_df, labels_df, on=['patient', 'slice'], how='left').fillna(method='ffill')
-    labels_df.to_csv('labels_df.csv')
+    #labels_df.to_csv('labels_df.csv')
     return labels_df
 
 def avg_labels(labels_df):
@@ -71,7 +92,7 @@ def weighted_avg(labels_df):
 
 
 def map2Dto3D(pred_labels_path, ct_images_path):
-    labels_df = transform_labels(get_2Dpred_labels(pred_labels_path))
+    labels_df = transform_labels(get_labels_df_json(pred_labels_path))
     patients = labels_df['patient'].unique()
     losses = {}
     data = []
@@ -83,13 +104,14 @@ def map2Dto3D(pred_labels_path, ct_images_path):
             h_pred = list(labels_df[labels_df['patient'] == patient]['h'])[0]
             pred_labels = [x_pred, y_pred, w_pred, h_pred]
             idxs = list(labels_df[labels_df['patient'] == patient]['slice'])
-            pred_center, pred_size = map2Dto3D_single_patient(ct_images_path, patient, pred_labels, idxs)
+            image_path = os.path.join(ct_images_path, patient, 'og_ct.nii')
+            pred_center, pred_size = map2Dto3D_single_patient(image_path, pred_labels, idxs)
             true_center, true_size = utils.read_json(os.path.join(ct_images_path, patient, 'bifurcation.json'))
             write_to_json(os.path.join(ct_images_path, patient, 'bifurcation.json'), pred_center, pred_size, out_path=os.path.join(ct_images_path, patient, 'pred.json'))
             losses[patient] = calculate_distance(pred_center, true_center)
             data.append([patient, pred_center, pred_size, true_center, true_size])
     df = pd.DataFrame(data, columns=['patient', 'pred_center', 'pred_size', 'true_center', 'true_size'])
-    df.to_csv(os.path.join(os.path.dirname(pred_labels_path), 'test_df.csv'))
+    #df.to_csv(os.path.join(os.path.dirname(pred_labels_path), 'test_df.csv'))
     return losses
    
 
@@ -103,15 +125,15 @@ def write_to_json(json_path, pred_center, pred_size, out_path):
     with open(out_path, "w") as outfile:
         outfile.write(json_dumps)
 
-def map2Dto3D_single_patient(ct_images_path, patient, pred_labels, idxs):
+def map2Dto3D_single_patient(ct_image_path, pred_labels, idxs):
     # reverses the utils.get_yololabel_from_3Dmarkup function
-    ct_im, spacing, origin, direction = utils.read_nifti_image(os.path.join(ct_images_path, patient, 'og_ct.nii'), only_img=False)
+    ct_im, spacing, origin, direction = utils.read_nifti_image(ct_image_path, only_img=False)
     im_h, im_w = ct_im.shape[1:]
     x,y,w,h = pred_labels
     z = (max(idxs) + min(idxs)) / 2
     w_true = w * spacing[0]
     h_true = h * spacing[1]
-    l = (max(idxs) - min(idxs)) * spacing[2]
+    l = (max(idxs) - min(idxs) + 1) * spacing[2]
     flip_axes = [i for i, val in enumerate(np.diag(direction)) if val < 0]
     if 1 in flip_axes:
         y = y - im_h
@@ -135,178 +157,91 @@ def calculate_distance(pred_center, true_center):
 
 
 
-def get_LM(ct_image_path, aorta_path, bifurcation_point, dilation=3, tolerance=4.0):
-    """ bifurcation_point is a list containinng [x_center, y_center, z_center]"""
+
+
+
+
+def detect_LM_calcium(ct_image_path, aorta_path, bifurcation_point, dilation=1, tolerance=10):
+    """ bifurcation_point is a list containinng [z_center, y_center, x_center]"""
     # Metadata information
-    im = utils.read_nifti_image(ct_image_path)
-    aorta_mask = utils.read_nifti_image(aorta_path)
-
+    im = utils.fix_direction(ct_image_path)
+    aorta_mask = utils.fix_direction(aorta_path)
+    
     # Generate all possible coordinates in 3D space
-    x, y, z = np.meshgrid(np.arange(im.shape[1]), np.arange(im.shape[2]), np.arange(im.shape[0]), indexing='ij')
-    points = np.column_stack((z.flatten(), x.flatten(), y.flatten()))
-    # Create an array of aorta_points using the coordinates where aorta_mask covers
-    aorta_indices = np.where(aorta_mask == 0)
-    print("Number of points in the aorta: ", len(aorta_indices[0]))
+    x, y, z = np.meshgrid(np.arange(im.shape[2]), np.arange(im.shape[1]), np.arange(im.shape[0]), indexing='ij')
+    points = np.column_stack((z.flatten(), y.flatten(), x.flatten()))
+    # Create an array of aorta_points using the coordinates where aorta_mask coverss
+    aorta_indices = np.where(aorta_mask == 1)
     aorta_points = np.column_stack(aorta_indices).astype(int)
-    filtered_aorta_points = [point[1:] for point in aorta_points if point[0] == int(bifurcation_point[0])]
-    print(filtered_aorta_points)
-
     
+    z_slice = int(bifurcation_point[0])
+    slices = list(range(z_slice - dilation, z_slice + dilation + 1))
+    filtered_aorta_points = [aorta_point[1:] for aorta_point in aorta_points if aorta_point[0] == z_slice]
+    #print(len(aorta_points))
 
-
-    nn2D = nn_dist(filtered_aorta_points, bifurcation_point[1:]) # x, y
-    nearest_neighbor = np.insert(nn2D, 0, int(bifurcation_point[0]))
-    print("bifurcation point: ", bifurcation)
-    print("nearest point of the aorta to the bifurcation point: ", nearest_neighbor) #z, x, y
-
-    viz.plot_single_slice(im[33])
-    viz.plot_single_slice(aorta_mask[33])
-
-    #plot_3d_scatter(aorta_points, bifurcation_point, nn_3D)
-    
-    #inside_points = [point for point in points if is_point_inside_cuboid(point, bifurcation, nearest_neighbor_point_3D, dilation_factor)]
-    #plot_3d_scatter(inside_points, bifurcation_point, nearest_neighbor_point_3D)
-
-    #nn2 = nn_dist_3D(aorta_points, bifurcation_point)
-    #print("nearest point v2: ", nn2) #z, x, y
+    nn2D = nn_dist(filtered_aorta_points, bifurcation_point[1:]) # y, x
+    nearest_neighbor = np.insert(nn2D, 0, z_slice)
+    print("bifurcation point: ", bifurcation_point)
+    print("nearest point of the aorta to the bifurcation point: ", nearest_neighbor) #z, y, x
+    #viz.plot_single_slice(im[33])
     results3D = []
-    slices = list(range(int(bifurcation_point[0]) - dilation, int(bifurcation_point[0]) + dilation + 1))
-    print(slices)
-    """
     for slice in slices:
+        filtered_aorta_points = [aorta_point[1:] for aorta_point in aorta_points if aorta_point[0] == slice]
+        nn2D = nn_dist(filtered_aorta_points, bifurcation_point[1:]) # y, x
         nn3D = np.insert(nn2D, 0, slice) #z, x, y
         line_start, line_end = determine_line_orientation(np.insert(bifurcation_point[1:], 0, slice), nn3D)
         filtered_points = [[point[1], point[2]] for point in points if point[0] == slice]
-        result2D = points_close(filtered_points, line_start[1:]-[5,5], line_end[1:]+[5,5], tolerance)
-        #print(result2D)
+        result2D = points_close(filtered_points, line_start[1:], line_end[1:], tolerance)
         results3D += [np.insert(point, 0, slice) for point in result2D]
-    print("Number of points close to the line: ", len(results3D))
-    print(results3D[:5])
-    #plot_3d_scatter(results3D, np.insert(bifurcation_point[1:], 0, int(bifurcation_point[0])), nearest_neighbor)
-    #plot_2d_scatter(result2D, bifurcation_point[1:], nearest_neighbor_point)
+   # print("Number of points close to the line: ", len(results3D))
+
+    #plot_3d_scatter(results3D, bifurcation_point=np.insert(bifurcation_point[1:], 0, int(bifurcation_point[0])), nearest_neighbor_point_3D=nearest_neighbor)
     connected_points = calcium_thresholding(im, results3D, threshold=130)
-    """
+    return connected_points
     
 
 
-def points_close(points_list, line_start, line_end, tolerance=0.5):
-    # Convert line_start, line_end, and line_direction to NumPy arrays
+def points_close(points_list, line_start, line_end, tolerance):
     line_start = np.array(line_start)
     line_end = np.array(line_end)
     line_direction = line_end - line_start
-
     # Normalize the direction vector
     line_direction /= np.linalg.norm(line_direction)
-
     result_points = []
-
     for point in points_list:
         # Check if the point is within the range of the line segment
-        if np.all(np.logical_and(point >= line_start, point <= line_end)):
+        if np.all(np.logical_and(point > line_start, point < line_end)):
             # Vector from line_start to the point
             vector_to_point = point - line_start
-
             # Calculate the projection of vector_to_point onto the line
             projection = np.dot(vector_to_point, line_direction) * line_direction
-
             # Calculate the distance between the point and its projection
             distance = np.linalg.norm(vector_to_point - projection)
-
             # Check if the point is close to the line within the specified tolerance
             if distance <= tolerance:
                 result_points.append(point)
-
     return result_points
     
 def determine_line_orientation(point1, point2):
-    # Compare coordinates for each dimension (x, y, z)
-    for dim in range(3):  # 0 for x, 1 for y, 2 for z
+    for dim in range(3):
         if point1[dim] < point2[dim]:
             return point1, point2
         elif point1[dim] > point2[dim]:
             return point2, point1
 
+
 def nn_dist(points, bifurcation_point):
     """ Calculates the point with the nearest distance in the set of points from the given bifurcation point"""
-
     from scipy.spatial.distance import cdist
     distances = cdist(points, [bifurcation_point])
     nearest_idx = np.argmin(distances)
     nearest_neighbor = points[nearest_idx]
     return nearest_neighbor
 
-    """ 
-
-    from scipy.spatial import cKDTree
-    kdtree = cKDTree(points)
-    _, nearest_idx = kdtree.query(bifurcation_point)
-    nearest_neighbor = points[nearest_idx]
-    return nearest_neighbor
-    """
-
-def nn_dist_3D(points, bifurcation_point):
-    from scipy.spatial import cKDTree
-    kdtree = cKDTree(points)
-    _, nearest_idx = kdtree.query(bifurcation_point)
-    nearest_neighbor = points[nearest_idx]
-    return nearest_neighbor
 
 
 
-def find_line_between_points(point1, point2):
-
-    # Calculate the direction vector of the line
-    line_direction = point2 - point1
-
-    return point1, point2, line_direction
-
-
-def points_on_line_or_close(points_list, line_start, line_direction, tolerance=0.1):
-    # Convert line_start and line_direction to NumPy arrays
-    line_start = np.array(line_start)
-    line_direction = np.array(line_direction)
-
-    # Normalize the direction vector
-    line_direction /= np.linalg.norm(line_direction)
-
-    result_points = []
-
-    for point in points_list:
-        # Vector from line_start to the point
-        vector_to_point = point - line_start
-
-        # Calculate the projection of vector_to_point onto the line
-        projection = np.dot(vector_to_point, line_direction) * line_direction
-
-        # Calculate the distance between the point and its projection
-        distance = np.linalg.norm(vector_to_point - projection)
-
-        # Check if the point is close to the line within the specified tolerance
-        if distance <= tolerance:
-            result_points.append(point)
-
-    return result_points
-
-
-
-
-
-
-
-
-def is_point_inside_cuboid(point, start_point, end_point, dilation_factor):
-    z1, x1, y1 = start_point
-    z2, x2, y2 = end_point
-    zp, xp, yp = point
-    # Check conditions for point inclusion with dilation factor
-    condition_x = (x1 <= xp <= x2 or x2 <= xp <= x1) and (xp - x1) / (x2 - x1) <= dilation_factor
-    condition_y = (y1 <= yp <= y2 or y2 <= yp <= y1) and (yp - y1) / (y2 - y1) <= dilation_factor
-    condition_z = (z1 <= zp <= z2 or z2 <= zp <= z1) and (zp - z1) / (z2 - z1) <= dilation_factor
-    return condition_x and condition_y and condition_z
-
-
-
-def plot_3d_scatter(points, bifurcation_point, nearest_neighbor_point_3D):
+def plot_3d_scatter(points, bifurcation_point, nearest_neighbor_point_3D, aorta_points=None):
     """
     Visualize a 3D scatter plot from a list of 3D points.
 
@@ -316,87 +251,62 @@ def plot_3d_scatter(points, bifurcation_point, nearest_neighbor_point_3D):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
 
-    z, x, y = zip(*points)
-    bz, bx, by = bifurcation_point
-    nz, nx, ny = nearest_neighbor_point_3D
+    z, y, x = zip(*points)
+    bz, by, bx = bifurcation_point
+    nz, ny, nx = nearest_neighbor_point_3D
     # Plot the line
     ax.plot([bx, nx], [by, ny], [bz, nz], label="LM Line", color="black", alpha=0.5)
 
-    ax.scatter(x,y,z, marker='o', alpha=0.5, color='steelblue')
+    ax.scatter(x,y,z, marker='o', alpha=0.2, color='orange', label='points close to LM line')
     ax.scatter(bx, by, bz, marker='o', alpha=1, color='red', label='Bifurcation point')
     ax.scatter(nx, ny, nz, marker='o', alpha=1, color='green', label='Nearest neighbor point')
+    if aorta_points is not None:
+        az, ay, ax = zip(*aorta_points)
+        ax.scatter(ax, ay, az, marker='o', alpha=0.2, color='steelblue', label='Aorta points')
 
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-    ax.set_zlim(20, 50)
+    #ax.set_zlim(20, 50)
     plt.legend()
     plt.show()
 
 
 
-
-def plot_2d_scatter(points_list, bifurcation_point2D, nn2D):
-    # Unpack the x and y coordinates from the list of points
-    x_coordinates, y_coordinates = zip(*points_list)
-    bx, by = bifurcation_point2D
-    nx, ny = nn2D
-
-    # Plot the line
-    plt.plot([bx, nx], [by, ny], label="LM Line", color="black", alpha=0.5)
-
-    # Plot the scatter plot
-    plt.scatter(x_coordinates, y_coordinates, marker='o', alpha=0.5, color='steelblue')
-    plt.scatter(bx, by, marker='o', alpha=1, color='red', label='Bifurcation point')
-    plt.scatter(nx, ny, marker='o', alpha=1, color='green', label='Nearest neighbor point')
-
-    # Set labels and title
-    plt.xlabel("X-axis")
-    plt.ylabel("Y-axis")
-    plt.title("2D Scatter Plot")
-
-    # Remove x and y ticks
-    #plt.xticks([])
-    #plt.yticks([])
-
-    # Display the legend
-    plt.legend()
-
-    # Show the plot
-    plt.show()
 
 
 def calcium_thresholding(im, points, threshold=130):
     filtered_indexes = []
     for index in points:
-        z, x, y = index
-        #print(im[z, x, y])
+        z, y, x = index
         # Check if the value at the given index is above the threshold
-        if im[z, x, y] > threshold:
-            filtered_indexes.append((z, x, y))
-    print("Points with values above threshold:", filtered_indexes)
+        if im[z, y, x] > threshold:
+            filtered_indexes.append((z, y, x))
+    #print("Points with values above threshold:", filtered_indexes)
+    #print("Number of points with values above threshold:", len(filtered_indexes))
     connected_points = set()
     # Check for 6-connectivity among the selected points
     for point in filtered_indexes:
-        z, x, y = point
+        z, y, x = point
         # Check the 6-connectivity in the neighborhood
         for i in [-1, 0, 1]:
             for j in [-1, 0, 1]:
                 for k in [-1, 0, 1]:
-                    if (i != 0 or j != 0 or k != 0) and 0 <= x + i < im.shape[0] and 0 <= y + j < im.shape[1] and 0 <= z + k < im.shape[2]:
-                        neighbor_index = (x + i, y + j, z + k)
+                    if (i != 0 or j != 0 or k != 0) and 0 <= z + i < im.shape[0] and 0 <= y + j < im.shape[1] and 0 <= x + k < im.shape[2]:
+                        neighbor_index = (z + i, y + j, x + k)
                         if im[neighbor_index] > threshold:
                             connected_points.add(neighbor_index)
     #print("Points with values above threshold and 6-connectivity:", connected_points)
+    #print("Number of points with values above threshold and 6-connectivity:", len(connected_points))
     return list(connected_points)
 
 
 
 if __name__ == '__main__':
 
-    data_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD190/og_ct.nii'
-    aorta_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD190/aorta_mask.nii'
-    markup_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD190/bifurcation.json'
+    data_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD071/og_ct.nii'
+    aorta_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD071/aorta_mask.nii'
+    markup_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD071/bifurcation.json'
 
     """ 
     losses = map2Dto3D(pred_labels_path=path, ct_images_path=data_path)
@@ -408,9 +318,28 @@ if __name__ == '__main__':
     
 
     bifurcation = utils.get_3Dcoor_from_markup(markup_path, data_path)
+    connected_points = detect_LM_calcium(data_path, aorta_path, bifurcation)
+    print(len(connected_points))
 
-    get_LM(data_path, aorta_path, bifurcation)
-    
+
+    data_folder = '/Users/aibotasanatbek/Desktop/data'
+    """ 
+    patients_with_LM_calcium = []
+    for patient in os.listdir(data_folder):
+        if os.path.isdir(os.path.join(data_folder, patient)):
+            patient_ct_file = os.path.join(data_folder, patient, 'og_ct.nii')
+            patient_aorta_path = os.path.join(data_folder, patient, 'aorta_mask.nii')
+            patient_bifurcation_path = os.path.join(data_folder, patient, 'bifurcation.json')
+            bifurcation = utils.get_3Dcoor_from_markup(patient_bifurcation_path, patient_ct_file)
+            connected_points = get_LM(patient_ct_file, patient_aorta_path, bifurcation)
+            if len(connected_points) > 0:
+                data = {}
+                data['patient_name'] = patient 
+                data['length'] = len(connected_points)
+                patients_with_LM_calcium.append(data)
+    print(patients_with_LM_calcium)
+    print(len(patients_with_LM_calcium))
+    """
 
 
 

@@ -2,23 +2,87 @@ import streamlit as st
 import os
 from werkzeug.utils import secure_filename
 import predict
-
+import utils
+import postprocessing
+import shutil
+import json
+from visualizations import viz
 
 
 # Set the upload folder and allowed extensions
-UPLOAD_FOLDER = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD002'
+UPLOAD_FOLDER = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {'nii', 'nii.gz'}
 
 # Function to check if the file extension is allowed
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Function to perform object detection (replace with your actual code)
-def detect_bifurcation(image_path, options, model_path='/Users/aibotasanatbek/Desktop/FYP2/experiments/final2/final_tuned/train/weights/best.pt'):
+
+# Function to perform object detection
+def detect_bifurcation(image_path, model_path='/Users/aibotasanatbek/Desktop/FYP2/experiments/final2/final_tuned/train/weights/best.pt'):
     # Placeholder function that returns a dummy result
     predict.predict(trained_model=model_path, ct_path=image_path)
-    predicted_images = predict.process_output()
+    predicted_images = predict.process_output(image_path)
     return predicted_images
+
+
+def show_output(image_path, options):
+    predicted_images = detect_bifurcation(image_path)
+    if options.get("Option 1"):
+        # Display the predicted images and results
+        st.header("Bifurcation Prediction Results")
+        imgs = st.columns(len(predicted_images))
+        for i, image in enumerate(predicted_images):
+            imgs[i].image(image, caption=f'{image.split("_")[-1].split(".")[0]}th slice', use_column_width=True)
+        st.write("The predicted images are shown above.")
+    
+    if options.get("Option 2"):
+        # Add download button to download generated json file
+        st.header("Download Result File")
+        st.markdown("""
+            Click the button below to download the json file with 3D bbox labels that can be imported to 3D Slicer Software.
+        """)
+        existing_json_filepath = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/pred.json'
+        if os.path.exists(existing_json_filepath):
+            with open(existing_json_filepath, 'r') as json_file:
+                json_content = json_file.read()
+        else:
+            # If the file doesn't exist, provide a default value or handle accordingly
+            json_content = None 
+        st.download_button(
+            label="Download Bbox Prediction Json File",
+            data=json_content,
+            file_name='bifurcation.json',
+            key='json_file_button'
+        )
+
+    st.header("Upload Aorta Segmentation File")
+    aorta_file = st.file_uploader("Choose an aorta segmentation mask in NIfTI file format (.nii)", type=['nii', 'nii.gz'])
+    if aorta_file is not None:
+        aorta_filename = secure_filename(aorta_file.name)
+        aorta_filepath = os.path.join(UPLOAD_FOLDER, aorta_filename)
+        with open(aorta_filepath, 'wb') as f:
+            f.write(aorta_file.getbuffer())
+
+        if options.get("Option 3"):
+            viz.plot_masks(utils.fix_direction(image_path), utils.fix_direction(aorta_filepath), save_path='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/aorta_mask.png')
+            st.image('/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/aorta_mask.png', use_column_width=True)
+
+        st.header("LM calcium detection results")
+        markup_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/pred.json'
+        bifurcation = utils.get_3Dcoor_from_markup(markup_path, image_path)
+        connected_points = postprocessing.detect_LM_calcium(image_path, aorta_filepath, bifurcation)
+
+        if len(connected_points) > 0:
+            st.write("There is a presence of LM calcification in the given CT scan")
+            st.write(f"The volume of the calcification consists of {len(connected_points)} pixels with 6-connectivity")
+        else:
+            st.write("There is no presence of LM calcification in the given CT scan")
+
+    shutil.rmtree('/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions')
+
+    
 
 def main():
     st.title("LM Calcium Detection Web App")
@@ -44,13 +108,9 @@ def main():
     st.markdown('<style>h2{font-size: 18px !important;}</style>', unsafe_allow_html=True)
 
 
-    # Image Section
-    #st.header("Sample Images")
-    #st.image(["/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/visualizations/aorta_mask_overlaid.png"], caption=["Image 1"], use_column_width=True)
-
     # Toggle List Section
-    with st.expander("Click here for more explanation about the LM calcium detection method"):
-        st.write("This content is hidden by default. Click the toggle to show or hide.")
+    #with st.expander("Click here for more explanation about the LM calcium detection method"):
+    #    st.write("This content is hidden by default. Click the toggle to show or hide.")
 
     # Options Section
     st.header("Results Display Options")
@@ -59,15 +119,8 @@ def main():
     col1, col2 = st.columns(2)
     option1 = col1.checkbox("Display bifurcation point detection results")
     option2 = col2.checkbox("Display aorta segmentation results")
-    #option3 = col1.checkbox("Option 3")
-    #option4 = col2.checkbox("Option 4")
+    option3 = st.checkbox("Generate json file with bifurcation 3D bbox (for importing to 3D Slicer software)")
 
-    # Select Box
-    #selected_option = st.selectbox("Select a bifurcation point detection threshold", ["Option A", "Option B", "Option C"])
-
-    # Set smaller font size for the upload section
-    #st.markdown('<style>h2{font-size: 18px !important;}</style>', unsafe_allow_html=True)
-    
 
     # Upload Section
     st.header("Upload NIfTI File")
@@ -83,38 +136,16 @@ def main():
         options = {
             "Option 1": option1,
             "Option 2": option2,
-            #"Option 3": option3,
-            #"Option 4": option4,
+            "Option 3": option3,
             #"Selected Option": selected_option
         }
 
-        # Call your object detection model here and get the results
-        # Replace the following line with your actual model inference code
-        predicted_images = detect_bifurcation(filepath, options)
+        
 
+        # Display output
+        show_output(filepath, options)
 
-        # Display the predicted images and results
-        st.header("Bifurcation Prediction Results")
-        imgs = st.columns(3)
-        for i, image in enumerate(predicted_images):
-            imgs[i].image(image, caption=f'{image.split("_")[-1].split(".")[0]}th slice', use_column_width=True)
-        st.write("The predicted images are shown above.")
-
-        # Add download button for the generated file
-        st.header("Download Result File")
-        st.markdown("""
-            Click the button below to download the json file with 3D bbox labels that can be imported to 3D Slicer Software.
-        """)
-        st.download_button(
-            label="Download Bbox Prediction Json File",
-            data='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/pred.json',
-            key='result_file_button'
-        )
 
 if __name__ == '__main__':
     main()
-
-
-    #st.image("/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/visualizations/aorta_mask_overlaid.png", caption="Image 1", width=image_width)
-    #st.image("/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/visualizations/bifurcation_point_bbox.png", caption="Image 2", width=image_width)
 
