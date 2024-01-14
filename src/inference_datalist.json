@@ -1,0 +1,8 @@
+{
+    "testing": [
+        {
+            "image": "og_ct.nii"
+        }
+    ],
+    "training": []
+}

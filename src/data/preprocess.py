@@ -53,6 +53,7 @@ def preprocess_bifurcation_data(root_folder, patient_name, destination_folder, i
         label_bifurcation, bifurcation_idxs = utils.get_yololabel_from_3Dmarkup(bifurcation_path, ct_path)
         for idx in range(ct_im.shape[0]):
             # Slice 3d images into 2d
+            #slice_data = transform.clip_values_3d(ct_im[idx, :, :])
             slice_data = ct_im[idx, :, :]
             img = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
             image_path = destination_folder / patient_name / 'images' / f'{patient_name}_{str(idx)}.png'
@@ -88,6 +89,7 @@ def preprocess_test_data(root_folder, patient_name, destination_folder):
         ct_im  = utils.fix_direction(ct_path)
         label_bifurcation, bifurcation_idxs = utils.get_yololabel_from_3Dmarkup(bifurcation_path, ct_path)
         for idx in range(ct_im.shape[0]):
+            #slice_data = transform.clip_values_3d(ct_im[idx, :, :])
             slice_data = ct_im[idx, :, :]
             img = (slice_data - slice_data.min()) / (slice_data.max() - slice_data.min()) * 255
             image_path = destination_folder / 'images' / f'{patient_name}_{str(idx)}.png'
@@ -170,24 +172,17 @@ def undersampler(train_folder, undersampling_factor=0.3):
 
 
 
+def delete_empty_labels(labels_folder):
+    labels_folder = Path(labels_folder)
+    for label_file in os.listdir(labels_folder):
+        label_path = labels_folder / label_file
+        label_line = utils.read_label_txt(label_path)
+        if len(label_line) == 0:
+            os.remove(label_path)
+            print(f'{label_file} deleted')
 
 
 
-
-def shuffle_files(source_folder):
-    destination_folder = os.path.join(os.path.dirname(source_folder), train_folder.split('/')[-1] + '_shuffled')
-    print(destination_folder)
-    # Get a list of all files in the source folder
-    files = os.listdir(source_folder)
-    # Shuffle the list of files
-    random.shuffle(files)
-    # Create the destination folder if it doesn't exist
-    if not os.path.exists(destination_folder):
-        os.makedirs(destination_folder)
-    for file_name in files:
-        source_path = os.path.join(source_folder, file_name)
-        destination_path = os.path.join(destination_folder, file_name)
-        shutil.copy2(source_path, destination_path)
 
 
 
@@ -204,26 +199,27 @@ if __name__ == '__main__':
 
 
 
-    #preprocess_data(data_folder_path, os.path.join(process_folder, "bifurcation"), test_folder, test_num=3)
+    preprocess_data(data_folder_path, os.path.join(process_folder, "bifurcation"), test_folder, test_num=3)
 
-     
+
+    "" 
     train_folder = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_3/train'
 
     before_df = create_df(Path(train_folder)/'labels')
     print("Number of bifurcation images before oversampling: ", len(before_df[before_df['label'] == 'bifurcation']))
     print("Number of background images before undersampling: ", len(before_df[before_df['label'] == 'background']))
 
-
-    
     oversampler(train_folder, oversampling_factor=4)
-    #undersampler(train_folder, undersampling_factor=0.3)
-    #destination_folder = os.path.join(train_folder, 'train_shuffled/images')
-    #shuffle_files(os.path.join(train_folder, 'labels'), )
+    undersampler(train_folder, undersampling_factor=0.3)
+
 
     after_df = create_df(Path(train_folder)/'labels')
     print("Number of bifurcation images after oversampling: ", len(after_df[after_df['label'] == 'bifurcation']))
     print("Number of background images after undersampling: ", len(after_df[after_df['label'] == 'background']))
     
+
+    labels_folder = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_1/train/labels'
+    delete_empty_labels(labels_folder)
     
 
 

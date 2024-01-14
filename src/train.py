@@ -1,17 +1,39 @@
 
-
 import os
+import yaml
 from pathlib import Path
 from ultralytics import YOLO
 from ultralytics import settings
-from sahi.utils.yolov8 import download_yolov8s_model
-from sahi import AutoDetectionModel
+from ultralytics.engine.model import Model
 
 
 
-    
-    
-def train_default_kfold_split(model, k_split, data_path, project_name, epoch):
+
+def train_default(model, datayaml_path, project, epoch):
+    """ Uses default hyperparameters from Ultralytics default.yaml
+    see: https://docs.ultralytics.com/usage/cfg/#train
+    """
+    result = model.train(
+        data = datayaml_path,
+        task = 'detect',
+        epochs = epoch,
+        verbose = True,
+        save = True,
+        device = 0,
+        project = project,
+        seed = 42,
+        save_dir='logs',
+        exist_ok = True,
+        plots = True,
+        )
+
+    print(result)
+
+    #results = model.val()
+    #success = model.export(format="onnx")
+
+
+def train_default_kfold_split(k_split, data_path, project_name, epoch):
     results = {}
     ds_yamls = []
     for split_folder in os.listdir(data_path):
@@ -20,90 +42,92 @@ def train_default_kfold_split(model, k_split, data_path, project_name, epoch):
             for yml_file in os.listdir(split_folder_path):
                 if yml_file.endswith(".yaml"):
                     ds_yamls.append(os.path.join(split_folder_path, yml_file))
-        
     for k in range(k_split):
         print("FOLD NUMBER: ", k+1)
         dataset_yaml = ds_yamls[k]
+        model = YOLO(f'model_new{k}/yolov8s.pt')
         model.train(
-            data=dataset_yaml,
-            epochs=epoch, 
-            imgsz=512, 
-            project=project_name, 
-            close_mosaic=0)  
+                data=dataset_yaml,
+                epochs=epoch,
+                single_cls=True,
+                imgsz=512,
+                project=project_name,
+                mosaic=0,
+                patience=0)
         results[k] = model.metrics
         print('###########################################################################################\n')
-    print(results)
+    #print(results)
+        
 
-    
-    
-def inference_SAHI(model, model_path):
-    """For small object detection, 
-    see: https://docs.ultralytics.com/guides/sahi-tiled-inference/"""
-    # pip install -U ultralytics sahi
-    
-    detection_model = AutoDetectionModel.from_pretrained(
-    model_type=model,
-    model_path=model_path,
-    confidence_threshold=0.3,
-    device='cuda:0'
-)
 
-    
-    
+def train_tuned_kfold_split(k_split, data_path, project_name, epoch, bs=16):
+    """ Changed hyperparameters, disabled early stopping, disabled mosaic augmentation"""
+    results = {}
+    ds_yamls = []
+    for split_folder in os.listdir(data_path):
+        split_folder_path = os.path.join(data_path, split_folder)
+        if os.path.isdir(split_folder_path):
+            for yml_file in os.listdir(split_folder_path):
+                if yml_file.endswith(".yaml"):
+                    ds_yamls.append(os.path.join(split_folder_path, yml_file))
+    for k in range(k_split):
+        print("FOLD NUMBER: ", k+1)
+        dataset_yaml = ds_yamls[k]
+        model = YOLO(f'model{k}/yolov8n.pt')
+        model.train(
+                data=dataset_yaml,
+                batch=bs,
+                epochs=epoch,
+                single_cls=True,
+                imgsz=512,
+                project=project_name,
+                save_json=True,
+                iou=0.4,
+                max_det=3,
+                mosaic=0,
+                patience=0,
+                lr0=0.005,
+                lrf=0.005,
+                momentum=0.8,
+                weight_decay=0.0002,
+                warmup_epochs=4,
+                warmup_momentum=0.95,
+                box=6.0,
+                cls=0.2,
+                dfl=1.8,
+                hsv_h=0.02,
+                hsv_s=0.5,
+                hsv_v=0.3,
+                translate=0.08,
+                scale=0.3,
+                fliplr=0.2,
+                seed=k
+                )
+        results[k] = model.metrics
+        print('###########################################################################################\n')
+    return results
+
+
 def tune_model(model, data_yaml, epoch, itr=300):
     """ Hyperparameter tuning using Genetic Mutation Algorithm """
-    model.tune(data=data_yaml, epochs=epoch, iterations=itr, optimizer='AdamW', plots=False, save=False, val=False)
-    
+    model.tune(data=data_yaml, epochs=epoch, iterations=itr, single_cls=True, imgsz=512, close_mosaic=0, plots=False, save=False, val=False)
 
 
-    
-    
+
 
 
 if __name__ == '__main__':
-    
-    project_path = r'E:\Aibota\calcium_scoring'
-    #settings['datasets_dir'] = os.path.join(project_path, 'data\\datasets')
-    #settings['runs_dir'] =  os.path.join(project_path, 'experiments\\runs')
-    #settings['weights_dir'] =  os.path.join(project_path, 'experiments\\weights')
+
+    project_path = "/home/sanatbyeka/calcium_scoring"
+    data_path = os.path.join(project_path, 'data/datasets/new')
 
 
-    data_path = os.path.join(project_path, 'data/datasets/bifurcation_dataset_split')
-    #train_default_kfold_split(model=model_path, k_split=5, data_path=data_path, project_name='experiments/bifurcation', epoch=300)
-
-
-
-    project_path = "/Users/aibotasanatbek/Documents/projects/calcium_scoring"
-    data_path = os.path.join(project_path, 'data/datasets/train_val')
-    dataset_yaml = os.path.join(data_path, 'split_5/split_5_dataset.yaml')
+    dataset_yaml = os.path.join(data_path, 'split_3/split_3_dataset.yaml')
 
     model = YOLO('yolov8n.pt')
 
-    
-    """ 
-    lr0: 0.01298
-lrf: 0.0125
-momentum: 0.98
-weight_decay: 0.00062
-warmup_epochs: 2.8244
-warmup_momentum: 0.63642
-box: 5.81596
-cls: 0.69746
-dfl: 1.44072
-hsv_h: 0.01267
-hsv_s: 0.55956
-hsv_v: 0.3003
-degrees: 0.0
-translate: 0.07682
-scale: 0.36183
-shear: 0.0
-perspective: 0.0
-flipud: 0.0
-fliplr: 0.20583
-mosaic: 0.80822
-mixup: 0.0
-copy_paste: 0.0
-    """
-    model.train(data=dataset_yaml, epochs=5, single_cls=True, imgsz=512, project='experiments/final', mosaic=0, patience=0, save_json=True)
+    #tune_model(model=model, data_yaml=dataset_yaml, epoch=30)
 
-    
+
+
+

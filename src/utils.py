@@ -275,10 +275,5 @@ def load_model(model_path):
 if __name__ == '__main__':
     
     
-    #root_data_folder = r'E:\Aibota\annotated_data_bii'
-    #save_extracted_aorta_masks(root_data_folder)
-
-    lbl = "/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/datasets/train_val/split_3/train/labels/PD001_31_aug0_0.txt"
-
-    print(read_label_txt(lbl))
-    print('0 ' + ' '.join(map(str, read_label_txt(lbl)[1:]))) 
+    root_data_folder = r'E:\Aibota\annotated_data_bii'
+    save_extracted_aorta_masks(root_data_folder)

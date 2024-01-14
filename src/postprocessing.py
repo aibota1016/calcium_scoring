@@ -32,6 +32,8 @@ def get_labels_df_json(json_path):
 def get_labels_df_txt(output_folder):
     labels_folder = Path(output_folder) / 'labels'
     labels = [x for x in labels_folder.iterdir() if x.suffix == '.txt']
+    if len(labels) == 0: #there is no predictions found
+        return None, None
     data, images = [], []
     for label in labels:
         label = str(label)
@@ -46,6 +48,8 @@ def get_labels_df_txt(output_folder):
         data.append([patient_name, int(slice_num), x, y, w, h, conf])
     pred_labels_df = pd.DataFrame(data, columns=['patient', 'slice', 'x', 'y', 'w', 'h', 'conf_score']).sort_values(by='patient', ignore_index=True)
     pred_labels_df = pred_labels_df[pred_labels_df['conf_score']>0.70]
+    if len(pred_labels_df) == 0: # there are predictions made, but with a confidence score of below 70
+        return None, images
     pred_labels_df = transform_labels(pred_labels_df)
     return pred_labels_df, images
 
@@ -177,13 +181,11 @@ def detect_LM_calcium(ct_image_path, aorta_path, bifurcation_point, dilation=1, 
     z_slice = int(bifurcation_point[0])
     slices = list(range(z_slice - dilation, z_slice + dilation + 1))
     filtered_aorta_points = [aorta_point[1:] for aorta_point in aorta_points if aorta_point[0] == z_slice]
-    #print(len(aorta_points))
 
     nn2D = nn_dist(filtered_aorta_points, bifurcation_point[1:]) # y, x
     nearest_neighbor = np.insert(nn2D, 0, z_slice)
     print("bifurcation point: ", bifurcation_point)
     print("nearest point of the aorta to the bifurcation point: ", nearest_neighbor) #z, y, x
-    #viz.plot_single_slice(im[33])
     results3D = []
     for slice in slices:
         filtered_aorta_points = [aorta_point[1:] for aorta_point in aorta_points if aorta_point[0] == slice]
@@ -193,7 +195,6 @@ def detect_LM_calcium(ct_image_path, aorta_path, bifurcation_point, dilation=1, 
         filtered_points = [[point[1], point[2]] for point in points if point[0] == slice]
         result2D = points_close(filtered_points, line_start[1:], line_end[1:], tolerance)
         results3D += [np.insert(point, 0, slice) for point in result2D]
-   # print("Number of points close to the line: ", len(results3D))
 
     #plot_3d_scatter(results3D, bifurcation_point=np.insert(bifurcation_point[1:], 0, int(bifurcation_point[0])), nearest_neighbor_point_3D=nearest_neighbor)
     connected_points = calcium_thresholding(im, results3D, threshold=130)
@@ -282,8 +283,6 @@ def calcium_thresholding(im, points, threshold=130):
         # Check if the value at the given index is above the threshold
         if im[z, y, x] > threshold:
             filtered_indexes.append((z, y, x))
-    #print("Points with values above threshold:", filtered_indexes)
-    #print("Number of points with values above threshold:", len(filtered_indexes))
     connected_points = set()
     # Check for 6-connectivity among the selected points
     for point in filtered_indexes:
@@ -296,13 +295,12 @@ def calcium_thresholding(im, points, threshold=130):
                         neighbor_index = (z + i, y + j, x + k)
                         if im[neighbor_index] > threshold:
                             connected_points.add(neighbor_index)
-    #print("Points with values above threshold and 6-connectivity:", connected_points)
-    #print("Number of points with values above threshold and 6-connectivity:", len(connected_points))
     return list(connected_points)
 
 
 
 if __name__ == '__main__':
+    
 
     data_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD071/og_ct.nii'
     aorta_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/data/raw/annotated_data_bii/PD071/aorta_mask.nii'
@@ -322,24 +320,6 @@ if __name__ == '__main__':
     print(len(connected_points))
 
 
-    data_folder = '/Users/aibotasanatbek/Desktop/data'
-    """ 
-    patients_with_LM_calcium = []
-    for patient in os.listdir(data_folder):
-        if os.path.isdir(os.path.join(data_folder, patient)):
-            patient_ct_file = os.path.join(data_folder, patient, 'og_ct.nii')
-            patient_aorta_path = os.path.join(data_folder, patient, 'aorta_mask.nii')
-            patient_bifurcation_path = os.path.join(data_folder, patient, 'bifurcation.json')
-            bifurcation = utils.get_3Dcoor_from_markup(patient_bifurcation_path, patient_ct_file)
-            connected_points = get_LM(patient_ct_file, patient_aorta_path, bifurcation)
-            if len(connected_points) > 0:
-                data = {}
-                data['patient_name'] = patient 
-                data['length'] = len(connected_points)
-                patients_with_LM_calcium.append(data)
-    print(patients_with_LM_calcium)
-    print(len(patients_with_LM_calcium))
-    """
 
 
 

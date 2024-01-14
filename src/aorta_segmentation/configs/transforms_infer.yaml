@@ -1,0 +1,16 @@
+_meta_: {}
+image_key: image
+transforms_infer:
+  _target_: Compose
+  transforms:
+  - {_target_: LoadImaged, image_only: true, keys: '@image_key'}
+  - {_target_: EnsureChannelFirstd, keys: '@image_key'}
+  - _target_: Compose
+    transforms:
+    - {_target_: ScaleIntensityRanged, a_max: 105.55555555555556, a_min: -10.333333333333334,
+      b_max: 1.0, b_min: 0.0, clip: true, keys: '@image_key'}
+    - {_target_: CropForegroundd, keys: '@image_key', source_key: '@image_key'}
+  - {_target_: Orientationd, axcodes: RAS, keys: '@image_key'}
+  - {_target_: Spacingd, align_corners: true, keys: '@image_key', mode: bilinear,
+    pixdim: $@transforms#resample_to_spacing}
+  - {_target_: CastToTyped, dtype: $torch.float32, keys: '@image_key'}

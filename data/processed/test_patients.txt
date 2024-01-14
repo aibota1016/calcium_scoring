@@ -1,2 +1,2 @@
 Test patients: 
- PD020 PD190  
+ PD020 PD085 PD062  

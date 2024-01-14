@@ -20,14 +20,19 @@ def allowed_file(filename):
 
 
 # Function to perform object detection
-def detect_bifurcation(image_path, model_path='/Users/aibotasanatbek/Desktop/FYP2/experiments/final2/final_tuned/train/weights/best.pt'):
+def detect_bifurcation(image_path, model_path='/Users/aibotasanatbek/Documents/projects/calcium_scoring/experiments/tuned/train/weights/best.pt'):
     # Placeholder function that returns a dummy result
-    predict.predict(trained_model=model_path, ct_path=image_path)
+    predict.predict_bifurcation(trained_model=model_path, ct_path=image_path)
     predicted_images = predict.process_output(image_path)
     return predicted_images
 
+def perform_aorta_segmentation(image_name):
+    inference_base = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/aorta_segmentation/prediction_testing'
+    seg_path = predict.get_segmentation(image_name, inference_base)
+    return seg_path
 
-def show_output(image_path, options):
+
+def show_output(image_path, filename, options):
     predicted_images = detect_bifurcation(image_path)
     if options.get("Option 1"):
         # Display the predicted images and results
@@ -56,30 +61,27 @@ def show_output(image_path, options):
             file_name='bifurcation.json',
             key='json_file_button'
         )
+    
+    aorta_file_path = perform_aorta_segmentation(filename)
+    print(aorta_file_path)
+    
+    #aorta_file_path = '/Users/aibotasanatbek/Desktop/data/PD065/aorta_mask.nii'
+    
+    if options.get("Option 3"):
+        viz.plot_masks(utils.read_nifti_image(image_path), utils.read_nifti_image(aorta_file_path), save_path='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/aorta_mask.png')
+        st.image('/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/aorta_mask.png', use_column_width=True)
 
-    st.header("Upload Aorta Segmentation File")
-    aorta_file = st.file_uploader("Choose an aorta segmentation mask in NIfTI file format (.nii)", type=['nii', 'nii.gz'])
-    if aorta_file is not None:
-        aorta_filename = secure_filename(aorta_file.name)
-        aorta_filepath = os.path.join(UPLOAD_FOLDER, aorta_filename)
-        with open(aorta_filepath, 'wb') as f:
-            f.write(aorta_file.getbuffer())
+    st.header("LM calcium detection results")
+    markup_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/pred.json'
+    bifurcation = utils.get_3Dcoor_from_markup(markup_path, image_path)
+    connected_points = postprocessing.detect_LM_calcium(image_path, aorta_file_path, bifurcation)
 
-        if options.get("Option 3"):
-            viz.plot_masks(utils.fix_direction(image_path), utils.fix_direction(aorta_filepath), save_path='/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/aorta_mask.png')
-            st.image('/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/aorta_mask.png', use_column_width=True)
-
-        st.header("LM calcium detection results")
-        markup_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions/predict/pred.json'
-        bifurcation = utils.get_3Dcoor_from_markup(markup_path, image_path)
-        connected_points = postprocessing.detect_LM_calcium(image_path, aorta_filepath, bifurcation)
-
-        if len(connected_points) > 0:
-            st.write("There is a presence of LM calcification in the given CT scan")
-            st.write(f"The volume of the calcification consists of {len(connected_points)} pixels with 6-connectivity")
-        else:
-            st.write("There is no presence of LM calcification in the given CT scan")
-
+    if len(connected_points) > 0:
+        st.write("There is a presence of LM calcification in the given CT scan")
+        st.write(f"The volume of the calcification consists of {len(connected_points)} pixels with 6-connectivity")
+    else:
+        st.write("There is no presence of LM calcification in the given CT scan")
+    
     shutil.rmtree('/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/predictions')
 
     
@@ -143,9 +145,12 @@ def main():
         
 
         # Display output
-        show_output(filepath, options)
+        show_output(filepath, filename, options)
 
 
 if __name__ == '__main__':
     main()
+    #image_path='/Users/aibotasanatbek/Desktop/data/PD065/og_ct.nii'
+    #aorta_file_path = '/Users/aibotasanatbek/Desktop/data/PD065/aorta_mask.nii'
+    #aorta_file_path = '/Users/aibotasanatbek/Documents/projects/calcium_scoring/src/Documents/projects/calcium_scoring/src/predictions/og_ct/og_ct_seg.nii.gz'
 

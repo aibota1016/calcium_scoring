@@ -245,7 +245,7 @@ if __name__ == '__main__':
     #train_val_split(dataset_path/'bifurcation/images', dataset_path/'bifurcation/labels', save_path/'bifurcation_train_val_split')
     
     
-    patient_split_k_folds(dataset_path/'bifurcation', save_path=save_path/'train_val', k=5)
+    patient_split_k_folds(dataset_path/'bifurcation', save_path=save_path/'train_val', k=3)
 
 
 
