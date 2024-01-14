@@ -1,6 +1,7 @@
 freeglut3-dev
 libgtk2.0-dev
 libgl1-mesa-glx
+libgl1-mesa-dev
 tesseract-ocr
 libtesseract-dev
 libtesseract4
