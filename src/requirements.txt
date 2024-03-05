@@ -16,4 +16,4 @@ torch==2.0.1
 torchvision==0.15.2
 tqdm
 ultralytics==8.0.225
-Werkzeug==2.3.7
+Werkzeug==2.3.8
